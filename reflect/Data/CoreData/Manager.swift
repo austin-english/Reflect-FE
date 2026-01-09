@@ -223,6 +223,7 @@ actor CoreDataManager {
     }
     
     /// Deletes all entities matching the fetch request (batch delete)
+    /// Note: Falls back to regular delete for in-memory stores
     func batchDelete<T: NSManagedObject>(
         _ type: T.Type,
         predicate: NSPredicate? = nil,
@@ -230,33 +231,50 @@ actor CoreDataManager {
     ) async throws {
         let targetContext = context ?? viewContext
         
-        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: String(describing: type))
-        fetchRequest.predicate = predicate
+        // Check if this is an in-memory store
+        let isInMemory = container.persistentStoreDescriptions.first?.type == NSInMemoryStoreType
         
-        let batchDeleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-        batchDeleteRequest.resultType = .resultTypeObjectIDs
-        
-        try await targetContext.perform {
-            do {
-                let result = try targetContext.execute(batchDeleteRequest) as? NSBatchDeleteResult
-                
-                // Merge changes into view context
-                if let objectIDArray = result?.result as? [NSManagedObjectID] {
-                    let changes = [NSDeletedObjectsKey: objectIDArray]
-                    NSManagedObjectContext.mergeChanges(
-                        fromRemoteContextSave: changes,
-                        into: [self.container.viewContext]
-                    )
+        if isInMemory {
+            // In-memory stores don't support batch delete, use regular delete
+            let fetchRequest = NSFetchRequest<T>(entityName: String(describing: type))
+            fetchRequest.predicate = predicate
+            
+            let objects = try await fetch(fetchRequest, context: targetContext)
+            try await delete(objects)
+            
+            #if DEBUG
+            print("✅ Deleted \(objects.count) \(T.self) entities (in-memory fallback)")
+            #endif
+        } else {
+            // Use batch delete for persistent stores (faster)
+            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: String(describing: type))
+            fetchRequest.predicate = predicate
+            
+            let batchDeleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+            batchDeleteRequest.resultType = .resultTypeObjectIDs
+            
+            try await targetContext.perform {
+                do {
+                    let result = try targetContext.execute(batchDeleteRequest) as? NSBatchDeleteResult
+                    
+                    // Merge changes into view context
+                    if let objectIDArray = result?.result as? [NSManagedObjectID] {
+                        let changes = [NSDeletedObjectsKey: objectIDArray]
+                        NSManagedObjectContext.mergeChanges(
+                            fromRemoteContextSave: changes,
+                            into: [self.container.viewContext]
+                        )
+                    }
+                    
+                    #if DEBUG
+                    print("✅ Batch deleted \(T.self) entities")
+                    #endif
+                } catch {
+                    #if DEBUG
+                    print("❌ Batch delete failed for \(T.self): \(error)")
+                    #endif
+                    throw CoreDataError.deleteFailed(error)
                 }
-                
-                #if DEBUG
-                print("✅ Batch deleted \(T.self) entities")
-                #endif
-            } catch {
-                #if DEBUG
-                print("❌ Batch delete failed for \(T.self): \(error)")
-                #endif
-                throw CoreDataError.deleteFailed(error)
             }
         }
     }

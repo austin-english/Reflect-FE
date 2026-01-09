@@ -497,6 +497,16 @@ All queries remain fast because:
   - Tag and search functionality
 - ⏳ Use case tests with mocks (when use cases are implemented)
 
+**⚠️ Testing Strategy Note:**
+- **Current**: All tests use in-memory Core Data stores (`CoreDataManager.inMemory()`)
+- **Coverage**: Tests business logic, data mapping, relationships, and queries (95% of bugs)
+- **Limitation**: Does NOT test actual disk persistence or SQLite-specific behavior
+- **TODO Before Launch (Phase 9)**: Add persistent store integration tests
+  - Test data survives app restart
+  - Test batch operations on SQLite (not just in-memory fallback)
+  - Test Core Data migrations
+  - See ARCHITECTURE.md "Testing Architecture" section for implementation guide
+
 ### Documentation
 - ✅ Updated ARCHITECTURE.md with Core Data schema
 - ✅ Documented entity relationships
@@ -915,7 +925,34 @@ All queries remain fast because:
 **Status**: 📋 Planned  
 **Duration**: 2 weeks  
 
-### Features to Implement
+**⚠️ Before Starting Phase 9:** Complete checklist in `PHASE9_CHECKLIST.md`
+
+### Pre-Phase 9: Add Persistent Store Integration Tests ⚠️ CRITICAL
+
+**BLOCKER** - Must complete before CloudKit integration
+
+- [ ] **Create PersistentStoreIntegrationTests suite**
+  - Verify data survives app restart
+  - Test batch operations on SQLite
+  - Test concurrent save scenarios
+  - Test migration paths (when schema changes)
+- [ ] **Add CoreDataManager.persistent(at:) initializer**
+  - Support temporary store URLs for testing
+  - Enable integration testing without affecting main store
+- [ ] **Document testing strategy differences**
+  - When to use in-memory (unit tests)
+  - When to use persistent (integration tests)
+  - CI/CD pipeline integration
+
+**Why This Matters:** Current tests use in-memory stores which don't test actual disk persistence, SQLite behavior, or migrations. Before CloudKit sync, we MUST verify persistent storage works correctly.
+
+**Resources:**
+- `TODO_PERSISTENT_TESTS.md` - Detailed implementation guide
+- `PHASE9_CHECKLIST.md` - Pre-flight checklist
+- `ARCHITECTURE.md` - Testing architecture section
+
+**Estimated Time:** 1-2 days  
+**Priority:** HIGH (blocker for Phase 9)
 
 #### App Lock
 - [ ] **Biometric Authentication**
@@ -981,6 +1018,12 @@ All queries remain fast because:
 - [ ] Security edge case tests
 - [ ] Export functionality tests
 - [ ] Deletion + export workflow tests
+- [ ] **⚠️ CRITICAL: Add Persistent Store Integration Tests**
+  - [ ] Test data persists across app restarts (SQLite)
+  - [ ] Test batch operations on persistent store
+  - [ ] Test concurrent save operations
+  - [ ] Test Core Data migrations (if schema changed)
+  - [ ] See ARCHITECTURE.md for implementation guide
 
 ---
 

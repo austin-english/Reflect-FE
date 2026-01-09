@@ -7,18 +7,92 @@
 
 import Testing
 import Foundation
+import CoreData
 @testable import reflect
 
 /// Tests for repository implementations
-@Suite("Repository Tests")
+///
+/// **Testing Strategy:**
+/// These tests use in-memory Core Data stores for fast unit testing.
+/// In-memory stores test business logic, data mapping, and relationships.
+///
+/// ⚠️ **TODO (Before Phase 9 - CloudKit):**
+/// Add PersistentStoreIntegrationTests suite to verify:
+/// - Data persists across app restarts
+/// - Batch operations work on SQLite
+/// - Migrations work correctly
+/// - Concurrent saves are handled
+///
+/// See ARCHITECTURE.md "Testing Architecture" section for details.
+///
+@Suite("Repository Tests", .serialized)  // Run tests one at a time to avoid context conflicts
 @MainActor
 struct RepositoryTests {
     
     // MARK: - Helper Methods
     
     /// Creates a fresh in-memory Core Data manager for testing
+    /// Note: In-memory stores are fast but don't test actual persistence
     func makeManager() -> CoreDataManager {
         CoreDataManager.inMemory()
+    }
+    
+    // MARK: - Test Fixtures
+    
+    /// Creates a test user with default values
+    func makeTestUser(name: String = "Test User") async throws -> (manager: CoreDataManager, repository: UserRepositoryImpl, user: User) {
+        let manager = makeManager()
+        let repository = UserRepositoryImpl(coreDataManager: manager)
+        let user = User(name: name)
+        try await repository.create(user)
+        return (manager, repository, user)
+    }
+    
+    /// Creates a test persona for a user
+    func makeTestPersona(
+        name: String = "Test Persona",
+        color: Persona.PersonaColor = .blue,
+        icon: Persona.PersonaIcon = .person,
+        isDefault: Bool = false,
+        userId: UUID
+    ) async throws -> Persona {
+        let persona = Persona(
+            name: name,
+            color: color,
+            icon: icon,
+            isDefault: isDefault,
+            userId: userId
+        )
+        return persona
+    }
+    
+    /// Creates a complete test context with user, persona, and repositories
+    func makeTestContext() async throws -> (
+        manager: CoreDataManager,
+        userRepo: UserRepositoryImpl,
+        personaRepo: PersonaRepositoryImpl,
+        postRepo: PostRepositoryImpl,
+        user: User,
+        persona: Persona
+    ) {
+        let manager = makeManager()
+        let userRepo = UserRepositoryImpl(coreDataManager: manager)
+        let personaRepo = PersonaRepositoryImpl(coreDataManager: manager)
+        let postRepo = PostRepositoryImpl(coreDataManager: manager)
+        
+        let user = User(name: "Test User")
+        try await userRepo.create(user)
+        
+        let persona = Persona(
+            name: "Personal",
+            color: .blue,
+            icon: .person,
+            isDefault: true,
+            userId: user.id
+        )
+        try await personaRepo.create(persona)
+        
+        return (manager, userRepo, personaRepo, postRepo, user, persona)
     }
     
     // MARK: - User Repository Tests
@@ -28,7 +102,7 @@ struct RepositoryTests {
         let manager = makeManager()
         let repository = UserRepositoryImpl(coreDataManager: manager)
         
-        // Create user
+        // Create user with specific fields
         let user = User(
             name: "Test User",
             bio: "Test bio",
@@ -52,17 +126,13 @@ struct RepositoryTests {
     
     @Test("UserRepository can update user")
     func testUserRepositoryUpdate() async throws {
-        let manager = makeManager()
-        let repository = UserRepositoryImpl(coreDataManager: manager)
+        let (_, repository, user) = try await makeTestUser(name: "Original Name")
         
-        // Create user
-        var user = User(name: "Original Name")
-        try await repository.create(user)
-        
-        // Update user
-        user.name = "Updated Name"
-        user.bio = "New bio"
-        try await repository.update(user)
+        // Update user (create mutable copy)
+        var updatedUser = user
+        updatedUser.name = "Updated Name"
+        updatedUser.bio = "New bio"
+        try await repository.update(updatedUser)
         
         // Fetch and verify
         let fetchedUser = try await repository.fetch(id: user.id)
@@ -96,12 +166,7 @@ struct RepositoryTests {
     
     @Test("UserRepository can fetch current user")
     func testUserRepositoryFetchCurrentUser() async throws {
-        let manager = makeManager()
-        let repository = UserRepositoryImpl(coreDataManager: manager)
-        
-        // Create user
-        let user = User(name: "Current User")
-        try await repository.create(user)
+        let (_, repository, user) = try await makeTestUser(name: "Current User")
         
         // Fetch current user
         let currentUser = try await repository.fetchCurrentUser()
@@ -116,12 +181,7 @@ struct RepositoryTests {
     
     @Test("UserRepository can update preferences")
     func testUserRepositoryUpdatePreferences() async throws {
-        let manager = makeManager()
-        let repository = UserRepositoryImpl(coreDataManager: manager)
-        
-        // Create user
-        let user = User(name: "Test User")
-        try await repository.create(user)
+        let (_, repository, user) = try await makeTestUser()
         
         // Update preferences
         var newPrefs = User.UserPreferences()
@@ -143,12 +203,7 @@ struct RepositoryTests {
     
     @Test("UserRepository can update premium status")
     func testUserRepositoryUpdatePremiumStatus() async throws {
-        let manager = makeManager()
-        let repository = UserRepositoryImpl(coreDataManager: manager)
-        
-        // Create user
-        let user = User(name: "Test User")
-        try await repository.create(user)
+        let (_, repository, user) = try await makeTestUser()
         
         // User should not be premium initially
         let hasPremiumBefore = try await repository.hasActivePremium(for: user.id)
@@ -168,12 +223,7 @@ struct RepositoryTests {
     
     @Test("UserRepository can update statistics")
     func testUserRepositoryUpdateStatistics() async throws {
-        let manager = makeManager()
-        let repository = UserRepositoryImpl(coreDataManager: manager)
-        
-        // Create user
-        let user = User(name: "Test User")
-        try await repository.create(user)
+        let (_, repository, user) = try await makeTestUser()
         
         // Update statistics
         try await repository.updateStatistics(
@@ -195,12 +245,7 @@ struct RepositoryTests {
     
     @Test("UserRepository can increment and decrement post count")
     func testUserRepositoryPostCountOperations() async throws {
-        let manager = makeManager()
-        let repository = UserRepositoryImpl(coreDataManager: manager)
-        
-        // Create user
-        let user = User(name: "Test User")
-        try await repository.create(user)
+        let (_, repository, user) = try await makeTestUser()
         
         // Increment post count
         try await repository.incrementPostCount(for: user.id)
@@ -226,8 +271,6 @@ struct RepositoryTests {
     func testUserRepositoryUpdateProfile() async throws {
         let manager = makeManager()
         let repository = UserRepositoryImpl(coreDataManager: manager)
-        
-        // Create user
         let user = User(name: "Original Name", bio: "Original bio")
         try await repository.create(user)
         
@@ -250,12 +293,7 @@ struct RepositoryTests {
     
     @Test("UserRepository can update profile photo")
     func testUserRepositoryUpdateProfilePhoto() async throws {
-        let manager = makeManager()
-        let repository = UserRepositoryImpl(coreDataManager: manager)
-        
-        // Create user
-        let user = User(name: "Test User")
-        try await repository.create(user)
+        let (_, repository, user) = try await makeTestUser()
         
         // Update profile photo
         try await repository.updateProfilePhoto(for: user.id, filename: "profile_123.jpg")
@@ -270,12 +308,7 @@ struct RepositoryTests {
     
     @Test("UserRepository can update streaks")
     func testUserRepositoryUpdateStreaks() async throws {
-        let manager = makeManager()
-        let repository = UserRepositoryImpl(coreDataManager: manager)
-        
-        // Create user
-        let user = User(name: "Test User")
-        try await repository.create(user)
+        let (_, repository, user) = try await makeTestUser()
         
         // Update streaks
         try await repository.updateStreaks(
@@ -828,39 +861,24 @@ struct RepositoryTests {
     
     @Test("PostRepository can create and fetch post")
     func testPostRepositoryCreateAndFetch() async throws {
-        let manager = makeManager()
-        let userRepo = UserRepositoryImpl(coreDataManager: manager)
-        let personaRepo = PersonaRepositoryImpl(coreDataManager: manager)
-        let postRepo = PostRepositoryImpl(coreDataManager: manager)
-        
-        // Setup user and persona
-        let user = User(name: "Test User")
-        try await userRepo.create(user)
-        
-        let persona = Persona(
-            name: "Personal",
-            color: .blue,
-            icon: .person,
-            isDefault: true,
-            userId: user.id
-        )
-        try await personaRepo.create(persona)
+        // Setup - using helper for common test context
+        let context = try await makeTestContext()
         
         // Create post
         let post = Post(
             caption: "Test post",
             mood: 8,
             experienceRating: 9,
-            personaId: persona.id,
+            personaId: context.persona.id,
             activityTags: ["test", "swift"],
             peopleTags: ["friends"],
             postType: .text
         )
         
-        try await postRepo.create(post)
+        try await context.postRepo.create(post)
         
         // Fetch post
-        let fetchedPost = try await postRepo.fetch(id: post.id)
+        let fetchedPost = try await context.postRepo.fetch(id: post.id)
         
         // Verify
         #expect(fetchedPost != nil)
@@ -871,178 +889,103 @@ struct RepositoryTests {
         #expect(fetchedPost?.peopleTags == ["friends"])
         
         // Cleanup
-        try await postRepo.delete(id: post.id)
-        try await personaRepo.delete(id: persona.id)
-        try await userRepo.delete(id: user.id)
+        try await context.postRepo.delete(id: post.id)
+        try await context.personaRepo.delete(id: context.persona.id)
+        try await context.userRepo.delete(id: context.user.id)
     }
     
     @Test("PostRepository can fetch posts by persona")
     func testPostRepositoryFetchByPersona() async throws {
-        let manager = makeManager()
-        let userRepo = UserRepositoryImpl(coreDataManager: manager)
-        let personaRepo = PersonaRepositoryImpl(coreDataManager: manager)
-        let postRepo = PostRepositoryImpl(coreDataManager: manager)
-        
-        // Setup
-        let user = User(name: "Test User")
-        try await userRepo.create(user)
-        
-        let persona = Persona(
-            name: "Personal",
-            color: .blue,
-            icon: .person,
-            userId: user.id
-        )
-        try await personaRepo.create(persona)
+        let context = try await makeTestContext()
         
         // Create posts
-        let post1 = Post(
-            caption: "Post 1",
-            mood: 8,
-            personaId: persona.id,
-            postType: .text
-        )
-        let post2 = Post(
-            caption: "Post 2",
-            mood: 7,
-            personaId: persona.id,
-            postType: .text
-        )
+        let post1 = Post(caption: "Post 1", mood: 8, personaId: context.persona.id, postType: .text)
+        let post2 = Post(caption: "Post 2", mood: 7, personaId: context.persona.id, postType: .text)
         
-        try await postRepo.create(post1)
-        try await postRepo.create(post2)
+        try await context.postRepo.create(post1)
+        try await context.postRepo.create(post2)
         
         // Fetch posts for persona
-        let posts = try await postRepo.fetchPosts(for: persona.id, limit: nil, offset: nil)
+        let posts = try await context.postRepo.fetchPosts(for: context.persona.id, limit: nil, offset: nil)
         
         // Verify
         #expect(posts.count == 2)
-        #expect(posts.allSatisfy { $0.personaId == persona.id })
+        #expect(posts.allSatisfy { $0.personaId == context.persona.id })
         
         // Cleanup
-        try await postRepo.delete(id: post1.id)
-        try await postRepo.delete(id: post2.id)
-        try await personaRepo.delete(id: persona.id)
-        try await userRepo.delete(id: user.id)
+        try await context.postRepo.delete(id: post1.id)
+        try await context.postRepo.delete(id: post2.id)
+        try await context.personaRepo.delete(id: context.persona.id)
+        try await context.userRepo.delete(id: context.user.id)
     }
     
     @Test("PostRepository can search posts")
     func testPostRepositorySearch() async throws {
-        let manager = makeManager()
-        let userRepo = UserRepositoryImpl(coreDataManager: manager)
-        let personaRepo = PersonaRepositoryImpl(coreDataManager: manager)
-        let postRepo = PostRepositoryImpl(coreDataManager: manager)
-        
-        // Setup
-        let user = User(name: "Test User")
-        try await userRepo.create(user)
-        
-        let persona = Persona(
-            name: "Personal",
-            color: .blue,
-            icon: .person,
-            userId: user.id
-        )
-        try await personaRepo.create(persona)
+        let context = try await makeTestContext()
         
         // Create posts
-        let post1 = Post(
-            caption: "Beautiful sunset at the beach",
-            mood: 9,
-            personaId: persona.id,
-            postType: .text
-        )
-        let post2 = Post(
-            caption: "Morning coffee",
-            mood: 7,
-            personaId: persona.id,
-            postType: .text
-        )
+        let post1 = Post(caption: "Beautiful sunset at the beach", mood: 9, personaId: context.persona.id, postType: .text)
+        let post2 = Post(caption: "Morning coffee", mood: 7, personaId: context.persona.id, postType: .text)
         
-        try await postRepo.create(post1)
-        try await postRepo.create(post2)
+        try await context.postRepo.create(post1)
+        try await context.postRepo.create(post2)
         
         // Search
-        let results = try await postRepo.searchPosts(query: "sunset")
+        let results = try await context.postRepo.searchPosts(query: "sunset")
         
         // Verify
         #expect(results.count == 1)
         #expect(results.first?.caption.contains("sunset") == true)
         
         // Cleanup
-        try await postRepo.delete(id: post1.id)
-        try await postRepo.delete(id: post2.id)
-        try await personaRepo.delete(id: persona.id)
-        try await userRepo.delete(id: user.id)
+        try await context.postRepo.delete(id: post1.id)
+        try await context.postRepo.delete(id: post2.id)
+        try await context.personaRepo.delete(id: context.persona.id)
+        try await context.userRepo.delete(id: context.user.id)
     }
     
     @Test("PostRepository can calculate mood statistics")
     func testPostRepositoryMoodStatistics() async throws {
-        let manager = makeManager()
-        let userRepo = UserRepositoryImpl(coreDataManager: manager)
-        let personaRepo = PersonaRepositoryImpl(coreDataManager: manager)
-        let postRepo = PostRepositoryImpl(coreDataManager: manager)
-        
-        // Setup
-        let user = User(name: "Test User")
-        try await userRepo.create(user)
-        
-        let persona = Persona(
-            name: "Personal",
-            color: .blue,
-            icon: .person,
-            userId: user.id
-        )
-        try await personaRepo.create(persona)
+        let context = try await makeTestContext()
         
         // Create posts with different moods
-        let post1 = Post(caption: "Happy", mood: 8, personaId: persona.id, postType: .text)
-        let post2 = Post(caption: "Good", mood: 7, personaId: persona.id, postType: .text)
-        let post3 = Post(caption: "Great", mood: 9, personaId: persona.id, postType: .text)
+        let post1 = Post(caption: "Happy", mood: 8, personaId: context.persona.id, postType: .text)
+        let post2 = Post(caption: "Good", mood: 7, personaId: context.persona.id, postType: .text)
+        let post3 = Post(caption: "Great", mood: 9, personaId: context.persona.id, postType: .text)
         
-        try await postRepo.create(post1)
-        try await postRepo.create(post2)
-        try await postRepo.create(post3)
+        try await context.postRepo.create(post1)
+        try await context.postRepo.create(post2)
+        try await context.postRepo.create(post3)
         
         // Calculate average mood
-        let averageMood = try await postRepo.fetchAverageMood()
+        let averageMood = try await context.postRepo.fetchAverageMood()
         
         // Verify (8 + 7 + 9) / 3 = 8.0
         #expect(averageMood == 8.0)
         
         // Fetch mood distribution
-        let distribution = try await postRepo.fetchMoodDistribution()
+        let distribution = try await context.postRepo.fetchMoodDistribution()
         #expect(distribution[7] == 1)
         #expect(distribution[8] == 1)
         #expect(distribution[9] == 1)
         
         // Cleanup
-        try await postRepo.delete(id: post1.id)
-        try await postRepo.delete(id: post2.id)
-        try await postRepo.delete(id: post3.id)
-        try await personaRepo.delete(id: persona.id)
-        try await userRepo.delete(id: user.id)
+        try await context.postRepo.delete(id: post1.id)
+        try await context.postRepo.delete(id: post2.id)
+        try await context.postRepo.delete(id: post3.id)
+        try await context.personaRepo.delete(id: context.persona.id)
+        try await context.userRepo.delete(id: context.user.id)
     }
     
     // MARK: - MediaItem Repository Tests
     
     @Test("MediaItemRepository can create and fetch media item")
     func testMediaItemRepositoryCreateAndFetch() async throws {
-        let manager = makeManager()
-        let userRepo = UserRepositoryImpl(coreDataManager: manager)
-        let personaRepo = PersonaRepositoryImpl(coreDataManager: manager)
-        let postRepo = PostRepositoryImpl(coreDataManager: manager)
-        let mediaRepo = MediaItemRepositoryImpl(coreDataManager: manager)
+        let context = try await makeTestContext()
+        let mediaRepo = MediaItemRepositoryImpl(coreDataManager: context.manager)
         
-        // Setup
-        let user = User(name: "Test User")
-        try await userRepo.create(user)
-        
-        let persona = Persona(name: "Personal", color: .blue, icon: .person, userId: user.id)
-        try await personaRepo.create(persona)
-        
-        let post = Post(caption: "Test", mood: 8, personaId: persona.id, postType: .photo)
-        try await postRepo.create(post)
+        let post = Post(caption: "Test", mood: 8, personaId: context.persona.id, postType: .photo)
+        try await context.postRepo.create(post)
         
         // Create media item
         let mediaItem = MediaItem(
@@ -1070,42 +1013,22 @@ struct RepositoryTests {
         
         // Cleanup
         try await mediaRepo.delete(id: mediaItem.id)
-        try await postRepo.delete(id: post.id)
-        try await personaRepo.delete(id: persona.id)
-        try await userRepo.delete(id: user.id)
+        try await context.postRepo.delete(id: post.id)
+        try await context.personaRepo.delete(id: context.persona.id)
+        try await context.userRepo.delete(id: context.user.id)
     }
     
     @Test("MediaItemRepository can fetch media items for post")
     func testMediaItemRepositoryFetchForPost() async throws {
-        let manager = makeManager()
-        let userRepo = UserRepositoryImpl(coreDataManager: manager)
-        let personaRepo = PersonaRepositoryImpl(coreDataManager: manager)
-        let postRepo = PostRepositoryImpl(coreDataManager: manager)
-        let mediaRepo = MediaItemRepositoryImpl(coreDataManager: manager)
+        let context = try await makeTestContext()
+        let mediaRepo = MediaItemRepositoryImpl(coreDataManager: context.manager)
         
-        // Setup
-        let user = User(name: "Test User")
-        try await userRepo.create(user)
-        
-        let persona = Persona(name: "Personal", color: .blue, icon: .person, userId: user.id)
-        try await personaRepo.create(persona)
-        
-        let post = Post(caption: "Test", mood: 8, personaId: persona.id, postType: .photo)
-        try await postRepo.create(post)
+        let post = Post(caption: "Test", mood: 8, personaId: context.persona.id, postType: .photo)
+        try await context.postRepo.create(post)
         
         // Create multiple media items
-        let media1 = MediaItem(
-            type: .photo,
-            filename: "photo1.jpg",
-            fileSize: 1_000_000,
-            postId: post.id
-        )
-        let media2 = MediaItem(
-            type: .photo,
-            filename: "photo2.jpg",
-            fileSize: 1_500_000,
-            postId: post.id
-        )
+        let media1 = MediaItem(type: .photo, filename: "photo1.jpg", fileSize: 1_000_000, postId: post.id)
+        let media2 = MediaItem(type: .photo, filename: "photo2.jpg", fileSize: 1_500_000, postId: post.id)
         
         try await mediaRepo.create(media1)
         try await mediaRepo.create(media2)
@@ -1121,28 +1044,18 @@ struct RepositoryTests {
         // Cleanup
         try await mediaRepo.delete(id: media1.id)
         try await mediaRepo.delete(id: media2.id)
-        try await postRepo.delete(id: post.id)
-        try await personaRepo.delete(id: persona.id)
-        try await userRepo.delete(id: user.id)
+        try await context.postRepo.delete(id: post.id)
+        try await context.personaRepo.delete(id: context.persona.id)
+        try await context.userRepo.delete(id: context.user.id)
     }
     
     @Test("MediaItemRepository can fetch primary media item")
     func testMediaItemRepositoryFetchPrimary() async throws {
-        let manager = makeManager()
-        let userRepo = UserRepositoryImpl(coreDataManager: manager)
-        let personaRepo = PersonaRepositoryImpl(coreDataManager: manager)
-        let postRepo = PostRepositoryImpl(coreDataManager: manager)
-        let mediaRepo = MediaItemRepositoryImpl(coreDataManager: manager)
+        let context = try await makeTestContext()
+        let mediaRepo = MediaItemRepositoryImpl(coreDataManager: context.manager)
         
-        // Setup
-        let user = User(name: "Test User")
-        try await userRepo.create(user)
-        
-        let persona = Persona(name: "Personal", color: .blue, icon: .person, userId: user.id)
-        try await personaRepo.create(persona)
-        
-        let post = Post(caption: "Test", mood: 8, personaId: persona.id, postType: .photo)
-        try await postRepo.create(post)
+        let post = Post(caption: "Test", mood: 8, personaId: context.persona.id, postType: .photo)
+        try await context.postRepo.create(post)
         
         // Create media items
         let media1 = MediaItem(type: .photo, filename: "first.jpg", fileSize: 1_000_000, postId: post.id)
@@ -1161,28 +1074,18 @@ struct RepositoryTests {
         // Cleanup
         try await mediaRepo.delete(id: media1.id)
         try await mediaRepo.delete(id: media2.id)
-        try await postRepo.delete(id: post.id)
-        try await personaRepo.delete(id: persona.id)
-        try await userRepo.delete(id: user.id)
+        try await context.postRepo.delete(id: post.id)
+        try await context.personaRepo.delete(id: context.persona.id)
+        try await context.userRepo.delete(id: context.user.id)
     }
     
     @Test("MediaItemRepository can fetch photos and videos separately")
     func testMediaItemRepositoryFetchByType() async throws {
-        let manager = makeManager()
-        let userRepo = UserRepositoryImpl(coreDataManager: manager)
-        let personaRepo = PersonaRepositoryImpl(coreDataManager: manager)
-        let postRepo = PostRepositoryImpl(coreDataManager: manager)
-        let mediaRepo = MediaItemRepositoryImpl(coreDataManager: manager)
+        let context = try await makeTestContext()
+        let mediaRepo = MediaItemRepositoryImpl(coreDataManager: context.manager)
         
-        // Setup
-        let user = User(name: "Test User")
-        try await userRepo.create(user)
-        
-        let persona = Persona(name: "Personal", color: .blue, icon: .person, userId: user.id)
-        try await personaRepo.create(persona)
-        
-        let post = Post(caption: "Test", mood: 8, personaId: persona.id, postType: .photo)
-        try await postRepo.create(post)
+        let post = Post(caption: "Test", mood: 8, personaId: context.persona.id, postType: .photo)
+        try await context.postRepo.create(post)
         
         // Create mixed media
         let photo = MediaItem(type: .photo, filename: "photo.jpg", fileSize: 1_000_000, postId: post.id)
@@ -1204,28 +1107,18 @@ struct RepositoryTests {
         // Cleanup
         try await mediaRepo.delete(id: photo.id)
         try await mediaRepo.delete(id: video.id)
-        try await postRepo.delete(id: post.id)
-        try await personaRepo.delete(id: persona.id)
-        try await userRepo.delete(id: user.id)
+        try await context.postRepo.delete(id: post.id)
+        try await context.personaRepo.delete(id: context.persona.id)
+        try await context.userRepo.delete(id: context.user.id)
     }
     
     @Test("MediaItemRepository can calculate total storage used")
     func testMediaItemRepositoryStorageStatistics() async throws {
-        let manager = makeManager()
-        let userRepo = UserRepositoryImpl(coreDataManager: manager)
-        let personaRepo = PersonaRepositoryImpl(coreDataManager: manager)
-        let postRepo = PostRepositoryImpl(coreDataManager: manager)
-        let mediaRepo = MediaItemRepositoryImpl(coreDataManager: manager)
+        let context = try await makeTestContext()
+        let mediaRepo = MediaItemRepositoryImpl(coreDataManager: context.manager)
         
-        // Setup
-        let user = User(name: "Test User")
-        try await userRepo.create(user)
-        
-        let persona = Persona(name: "Personal", color: .blue, icon: .person, userId: user.id)
-        try await personaRepo.create(persona)
-        
-        let post = Post(caption: "Test", mood: 8, personaId: persona.id, postType: .photo)
-        try await postRepo.create(post)
+        let post = Post(caption: "Test", mood: 8, personaId: context.persona.id, postType: .photo)
+        try await context.postRepo.create(post)
         
         // Create media with known sizes
         let photo = MediaItem(type: .photo, filename: "photo.jpg", fileSize: 1_000_000, postId: post.id)
@@ -1249,28 +1142,18 @@ struct RepositoryTests {
         // Cleanup
         try await mediaRepo.delete(id: photo.id)
         try await mediaRepo.delete(id: video.id)
-        try await postRepo.delete(id: post.id)
-        try await personaRepo.delete(id: persona.id)
-        try await userRepo.delete(id: user.id)
+        try await context.postRepo.delete(id: post.id)
+        try await context.personaRepo.delete(id: context.persona.id)
+        try await context.userRepo.delete(id: context.user.id)
     }
     
     @Test("MediaItemRepository can fetch media counts")
     func testMediaItemRepositoryCounts() async throws {
-        let manager = makeManager()
-        let userRepo = UserRepositoryImpl(coreDataManager: manager)
-        let personaRepo = PersonaRepositoryImpl(coreDataManager: manager)
-        let postRepo = PostRepositoryImpl(coreDataManager: manager)
-        let mediaRepo = MediaItemRepositoryImpl(coreDataManager: manager)
+        let context = try await makeTestContext()
+        let mediaRepo = MediaItemRepositoryImpl(coreDataManager: context.manager)
         
-        // Setup
-        let user = User(name: "Test User")
-        try await userRepo.create(user)
-        
-        let persona = Persona(name: "Personal", color: .blue, icon: .person, userId: user.id)
-        try await personaRepo.create(persona)
-        
-        let post = Post(caption: "Test", mood: 8, personaId: persona.id, postType: .photo)
-        try await postRepo.create(post)
+        let post = Post(caption: "Test", mood: 8, personaId: context.persona.id, postType: .photo)
+        try await context.postRepo.create(post)
         
         // Create media
         let photo1 = MediaItem(type: .photo, filename: "photo1.jpg", fileSize: 1_000_000, postId: post.id)
@@ -1295,28 +1178,18 @@ struct RepositoryTests {
         try await mediaRepo.delete(id: photo1.id)
         try await mediaRepo.delete(id: photo2.id)
         try await mediaRepo.delete(id: video.id)
-        try await postRepo.delete(id: post.id)
-        try await personaRepo.delete(id: persona.id)
-        try await userRepo.delete(id: user.id)
+        try await context.postRepo.delete(id: post.id)
+        try await context.personaRepo.delete(id: context.persona.id)
+        try await context.userRepo.delete(id: context.user.id)
     }
     
     @Test("MediaItemRepository can check if filename is in use")
     func testMediaItemRepositoryFilenameCheck() async throws {
-        let manager = makeManager()
-        let userRepo = UserRepositoryImpl(coreDataManager: manager)
-        let personaRepo = PersonaRepositoryImpl(coreDataManager: manager)
-        let postRepo = PostRepositoryImpl(coreDataManager: manager)
-        let mediaRepo = MediaItemRepositoryImpl(coreDataManager: manager)
+        let context = try await makeTestContext()
+        let mediaRepo = MediaItemRepositoryImpl(coreDataManager: context.manager)
         
-        // Setup
-        let user = User(name: "Test User")
-        try await userRepo.create(user)
-        
-        let persona = Persona(name: "Personal", color: .blue, icon: .person, userId: user.id)
-        try await personaRepo.create(persona)
-        
-        let post = Post(caption: "Test", mood: 8, personaId: persona.id, postType: .photo)
-        try await postRepo.create(post)
+        let post = Post(caption: "Test", mood: 8, personaId: context.persona.id, postType: .photo)
+        try await context.postRepo.create(post)
         
         // Create media
         let media = MediaItem(
@@ -1341,8 +1214,8 @@ struct RepositoryTests {
         
         // Cleanup
         try await mediaRepo.delete(id: media.id)
-        try await postRepo.delete(id: post.id)
-        try await personaRepo.delete(id: persona.id)
-        try await userRepo.delete(id: user.id)
+        try await context.postRepo.delete(id: post.id)
+        try await context.personaRepo.delete(id: context.persona.id)
+        try await context.userRepo.delete(id: context.user.id)
     }
 }

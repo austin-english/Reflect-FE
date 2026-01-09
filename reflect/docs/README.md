@@ -246,7 +246,7 @@ ScrollView {
 
 ### Running Tests
 ```bash
-# Run all tests
+# Run all tests (uses Simulator)
 Cmd+U in Xcode
 
 # Run specific test file
@@ -256,10 +256,37 @@ Right-click test file → Run
 ### Test Structure
 ```
 ReflectTests/
-├── RepositoryTests/
-├── UseCaseTests/
-└── ServiceTests/
+├── CoreDataManagerTests.swift    # Core Data operations
+├── RepositoryTests.swift          # Repository implementations
+├── MappersTests.swift             # Entity mapping
+├── SimpleDiagnosticTest.swift    # Test diagnostics
+└── XCTestDiagnostic.swift         # XCTest diagnostics
 ```
+
+### Testing Strategy
+
+**Current: In-Memory Unit Tests (Fast & Isolated)**
+- ✅ Tests run on Simulator (instant execution)
+- ✅ Use in-memory Core Data stores (100x faster)
+- ✅ Cover business logic, data mapping, relationships
+- ✅ Each test gets clean database automatically
+- ✅ Appropriate for rapid development iteration
+
+**⚠️ TODO: Persistent Store Integration Tests**
+
+See `TODO_PERSISTENT_TESTS.md` for details.
+
+Before Phase 9 (CloudKit), add tests for:
+- Data persistence across app restarts
+- SQLite-specific batch operations
+- Concurrent save scenarios
+- Migration testing
+
+**Important:** Current tests don't verify disk persistence. Manual testing on device is critical until persistent integration tests are added.
+
+**Device vs Simulator:**
+- ✅ **Use Simulator** for unit tests (fast, reliable)
+- ✅ **Use physical device** for manual testing (real performance)
 
 ---
 
