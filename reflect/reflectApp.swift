@@ -9,9 +9,21 @@ import SwiftUI
 
 @main
 struct reflectApp: App {
+    
+    @State private var hasCompletedOnboarding = CompleteOnboardingUseCase.hasCompletedOnboarding()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if hasCompletedOnboarding {
+                // Main app (currently showing component showcase)
+                ContentView()
+            } else {
+                // Show onboarding
+                OnboardingCoordinator {
+                    // When onboarding completes, update state
+                    hasCompletedOnboarding = true
+                }
+            }
         }
     }
 }
