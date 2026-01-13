@@ -21,9 +21,6 @@ final class OnboardingViewModel {
     /// User input: name
     var name: String = ""
     
-    /// User input: bio (optional)
-    var bio: String = ""
-    
     /// User input: email (optional)
     var email: String = ""
     
@@ -112,7 +109,6 @@ final class OnboardingViewModel {
             // Execute the use case
             _ = try await completeOnboardingUseCase.execute(
                 name: name,
-                bio: bio.isEmpty ? nil : bio,
                 email: email.isEmpty ? nil : email,
                 personaName: personaName,
                 personaColor: personaColor

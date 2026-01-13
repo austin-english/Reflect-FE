@@ -64,8 +64,8 @@ struct WelcomeView: View {
                 
                 FeatureRow(
                     icon: "square.and.arrow.up",
-                    title: "Draft Before You Share",
-                    description: "Perfect your posts before going public"
+                    title: "Share When Ready",
+                    description: "Export to Instagram, Twitter, or anywhere"
                 )
             }
             .padding(.horizontal, Spacing.extraLarge.rawValue)

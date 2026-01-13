@@ -17,6 +17,9 @@ final class CompleteOnboardingUseCase {
     private let userRepository: UserRepository
     private let personaRepository: PersonaRepository
     
+    /// UserDefaults key for tracking onboarding completion
+    private static let hasCompletedOnboardingKey = "hasCompletedOnboarding"
+    
     // MARK: - Initialization
     
     init(
@@ -32,7 +35,6 @@ final class CompleteOnboardingUseCase {
     /// Completes onboarding by creating user and default persona
     /// - Parameters:
     ///   - name: User's name (required)
-    ///   - bio: User's bio (optional)
     ///   - email: User's email (optional)
     ///   - personaName: Name for the default persona (defaults to "Personal")
     ///   - personaColor: Color for the default persona (defaults to .blue)
@@ -40,7 +42,6 @@ final class CompleteOnboardingUseCase {
     /// - Throws: OnboardingError if validation fails or creation fails
     func execute(
         name: String,
-        bio: String? = nil,
         email: String? = nil,
         personaName: String = "Personal",
         personaColor: Persona.PersonaColor = .blue
@@ -56,10 +57,16 @@ final class CompleteOnboardingUseCase {
         }
         
         // Create user
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEmail = email?.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Convert empty email to nil
+        let finalEmail = trimmedEmail?.isEmpty == true ? nil : trimmedEmail
+        
         let user = User(
-            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-            bio: bio?.trimmingCharacters(in: .whitespacesAndNewlines),
-            email: email?.trimmingCharacters(in: .whitespacesAndNewlines)
+            name: trimmedName,
+            bio: nil,
+            email: finalEmail
         )
         
         try await userRepository.create(user)
@@ -99,12 +106,17 @@ final class CompleteOnboardingUseCase {
             throw OnboardingError.nameTooLong
         }
         
-        // Validate email if provided
-        if let email = email, !email.isEmpty {
-            let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
-            let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
-            guard emailPredicate.evaluate(with: email) else {
-                throw OnboardingError.invalidEmail
+        // Validate email if provided and not empty after trimming
+        if let email = email {
+            let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // Only validate if not empty after trimming (empty is ok, it's optional)
+            if !trimmedEmail.isEmpty {
+                let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+                let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
+                guard emailPredicate.evaluate(with: trimmedEmail) else {
+                    throw OnboardingError.invalidEmail
+                }
             }
         }
     }
@@ -112,17 +124,17 @@ final class CompleteOnboardingUseCase {
     // MARK: - Persistence
     
     private func markOnboardingComplete() {
-        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+        UserDefaults.standard.set(true, forKey: Self.hasCompletedOnboardingKey)
     }
     
     /// Check if onboarding has been completed
     static func hasCompletedOnboarding() -> Bool {
-        return UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+        return UserDefaults.standard.bool(forKey: hasCompletedOnboardingKey)
     }
     
     /// Reset onboarding state (for testing/debugging)
     static func resetOnboarding() {
-        UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
+        UserDefaults.standard.removeObject(forKey: hasCompletedOnboardingKey)
     }
 }
 

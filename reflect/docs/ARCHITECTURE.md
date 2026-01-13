@@ -112,12 +112,18 @@ reflect/
 │           └── PersonaSetupView.swift
 │
 └── Tests/
-    ├── Domain/
-    │   └── UseCases/
-    │       └── CompleteOnboardingUseCaseTests.swift
+    ├── reflectTests/                 # Unit tests target
+    │   ├── Domain/
+    │   │   └── UseCases/
+    │   │       └── CompleteOnboardingUseCaseTests.swift
+    │   │
+    │   └── Data/
+    │       ├── CoreDataManagerTests.swift
+    │       ├── MappersTests.swift
+    │       └── RepositoryTests.swift
     │
-    └── Data/
-        └── RepositoryTests.swift
+    └── reflectUITests/               # UI tests target
+        └── OnboardingFlowUITests.swift
 ```
 
 ### Target Structure (All Phases)
@@ -261,13 +267,25 @@ reflect/
 │   └── ImageCache.swift
 │
 └── Tests/
-    ├── ReflectTests/
-    │   ├── RepositoryTests/
-    │   ├── UseCaseTests/
-    │   └── ServiceTests/
+    ├── reflectTests/             # Unit tests target
+    │   ├── Domain/
+    │   │   └── UseCases/
+    │   │       └── CompleteOnboardingUseCaseTests.swift
+    │   │
+    │   ├── Data/
+    │   │   ├── CoreDataManagerTests.swift
+    │   │   ├── MappersTests.swift
+    │   │   └── RepositoryTests/
+    │   │       ├── UserRepositoryTests.swift
+    │   │       ├── PersonaRepositoryTests.swift
+    │   │       ├── PostRepositoryTests.swift
+    │   │       └── MediaItemRepositoryTests.swift
+    │   │
+    │   └── Services/
+    │       └── (Future service tests)
     │
-    └── ReflectUITests/
-        └── OnboardingFlowTests.swift
+    └── reflectUITests/           # UI tests target
+        └── OnboardingFlowUITests.swift
 ```
 
 ---
@@ -1787,6 +1805,30 @@ class FeedViewModel {
 - **Entities**: `Post`, `User`, `Persona`
 - **Services**: `CameraService`, `MemoriesService`
 - **Repositories**: `PostRepository`, `PostRepositoryImpl`
+
+### Constants & String Literals
+- **Avoid hardcoded strings**: Define constants for repeated string literals
+- **UserDefaults keys**: Use static constants
+- **Notification names**: Use static constants
+- **Example**:
+  ```swift
+  // ✅ Good - Single source of truth
+  class CompleteOnboardingUseCase {
+      private static let hasCompletedOnboardingKey = "hasCompletedOnboarding"
+      
+      func markComplete() {
+          UserDefaults.standard.set(true, forKey: Self.hasCompletedOnboardingKey)
+      }
+  }
+  
+  // ❌ Bad - Hardcoded strings repeated
+  func markComplete() {
+      UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+  }
+  func hasCompleted() -> Bool {
+      return UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") // Typo risk!
+  }
+  ```
 
 ### Swift Concurrency
 - Prefer `async/await` over completion handlers

@@ -10,7 +10,19 @@ import SwiftUI
 @main
 struct reflectApp: App {
     
-    @State private var hasCompletedOnboarding = CompleteOnboardingUseCase.hasCompletedOnboarding()
+    @State private var hasCompletedOnboarding: Bool
+    
+    init() {
+        // Handle UI testing arguments
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--reset-onboarding") {
+            CompleteOnboardingUseCase.resetOnboarding()
+        }
+        #endif
+        
+        // Initialize state after handling test arguments
+        _hasCompletedOnboarding = State(initialValue: CompleteOnboardingUseCase.hasCompletedOnboarding())
+    }
     
     var body: some Scene {
         WindowGroup {

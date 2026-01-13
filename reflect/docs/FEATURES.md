@@ -497,7 +497,7 @@ All queries remain fast because:
   - PersonaRepository tests
   - PostRepository tests with statistics
   - Tag and search functionality
-- ⏳ Use case tests with mocks (when use cases are implemented)
+- ✅ Use case tests with mocks (CompleteOnboardingUseCaseTests.swift - 20 tests)
 
 **⚠️ Testing Strategy Note:**
 - **Current**: All tests use in-memory Core Data stores (`CoreDataManager.inMemory()`)
@@ -530,12 +530,13 @@ All queries remain fast because:
 - ✅ **Welcome Screen**
   - "Anti-social social media" positioning and branding
   - Tagline: "Social media where you're the only follower"
-  - 4 feature highlights:
+  - 5 feature highlights:
     - Familiar & Beautiful (social media UI, just for you)
     - Track Your Well-Being (moods, activities, memories)
     - Relive Your Moments (memories teaser)
     - Understand Yourself (patterns and insights)
-  - Person icon representing "you as the only follower"
+    - Share When Ready (export to Instagram, Twitter, or anywhere)
+  - ReflectLogo representing the solo, reflective nature
   - Clean, modern design with brand colors
 
 - ✅ **Privacy Screen**
@@ -551,7 +552,6 @@ All queries remain fast because:
 #### Account Setup
 - ✅ **Sign Up Screen**
   - Name input (required, 2-50 characters, validated)
-  - Bio input (optional, multi-line, 3-6 lines)
   - Email input (optional, regex validated)
   - Real-time validation with error messages
   - No auto-focus (user controls when keyboard appears)
@@ -636,16 +636,17 @@ All queries remain fast because:
 
 ### Testing
 - ✅ **Use Case Tests** (CompleteOnboardingUseCaseTests.swift)
-  - 14 comprehensive tests covering:
-    - Success case (user + persona creation)
-    - Name validation (empty, too short, too long, whitespace)
-    - Email validation (invalid formats, valid formats, optional)
+  - 20 comprehensive tests covering:
+    - Success cases (user + persona creation, with email, custom persona)
+    - Name validation (empty, whitespace, too short, too long, min/max length)
+    - Email validation (invalid formats, valid formats, optional/nil)
+    - Whitespace trimming (name, email, persona name)
     - User already exists error handling
-    - Persona name validation
-    - Custom persona configuration (name + color)
-    - Onboarding state reset
+    - Persona creation and properties
+    - Onboarding state management (completion, reset)
   - 100% code coverage of use case logic
   - Mock repositories for isolated testing
+  - Uses Swift Testing framework (@Test, #expect)
 
 - ⏳ **ViewModel Tests** (Future - not critical for MVP)
   - OnboardingViewModel state transitions
@@ -699,7 +700,7 @@ App/
 1. **First Launch** → App checks UserDefaults for onboarding completion
 2. **Welcome** → User sees app introduction and value proposition
 3. **Privacy** → User learns about privacy features
-4. **Sign Up** → User enters name (required), bio & email (optional)
+4. **Sign Up** → User enters name (required) and email (optional)
 5. **Persona Setup** → User customizes their first persona (name + color)
 6. **Complete** → User and persona saved to Core Data, flag set in UserDefaults
 7. **Navigation** → App transitions to main feed

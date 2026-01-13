@@ -11,7 +11,7 @@ import CoreData
 @testable import reflect
 
 /// Tests for Core Data entity mappers
-@Suite("Entity Mappers Tests")
+@Suite("Entity Mappers Tests", .serialized)
 @MainActor
 struct MappersTests {
     
