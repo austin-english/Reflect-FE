@@ -8,95 +8,76 @@
 import SwiftUI
 
 /// Custom logo for Reflect app
-/// Single person silhouette in a spotlight/circle
+/// Water ripple design - like dropping a stone into a still pond
 /// Represents "you're the only follower" - solo, personal, introspective
+/// The ripple symbolizes the impact of self-reflection spreading outward
 struct ReflectLogo: View {
     var size: CGFloat = 80
     var animated: Bool = false
     
     var body: some View {
         ZStack {
-            // Outer glow/spotlight effect
+            // Subtle background glow (water surface ambiance)
             Circle()
                 .fill(
                     RadialGradient(
                         colors: [
-                            Color.reflectPrimary.opacity(0.15),
+                            Color.reflectPrimary.opacity(0.06),
                             Color.clear
                         ],
                         center: .center,
-                        startRadius: size * 0.3,
-                        endRadius: size * 0.7
+                        startRadius: 0,
+                        endRadius: size * 0.6
                     )
                 )
-                .frame(width: size * 1.4, height: size * 1.4)
+                .frame(width: size * 1.2, height: size * 1.2)
             
-            // Main circle (your space, your bubble)
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.reflectPrimary.opacity(0.12),
-                            Color.reflectPrimary.opacity(0.05)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: size, height: size)
-            
-            // Subtle circle outline (boundary of your personal space)
+            // Fourth ripple (outermost, faintest)
             Circle()
                 .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color.reflectPrimary.opacity(0.4),
-                            Color.reflectPrimary.opacity(0.2)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 2
+                    Color.reflectPrimary.opacity(0.12),
+                    lineWidth: 1.5
                 )
                 .frame(width: size, height: size)
             
-            // Single person silhouette (you - the only follower)
-            VStack(spacing: size * 0.08) {
-                // Head
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.reflectPrimary.opacity(0.9),
-                                Color.reflectPrimary
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: size * 0.24, height: size * 0.24)
-                
-                // Body/torso
-                RoundedRectangle(cornerRadius: size * 0.08)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.reflectPrimary.opacity(0.9),
-                                Color.reflectPrimary
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .frame(width: size * 0.32, height: size * 0.38)
-            }
-            .offset(y: -size * 0.02)
-            
-            // Subtle dot below (grounding, present moment)
+            // Third ripple
             Circle()
-                .fill(Color.reflectPrimary.opacity(0.3))
-                .frame(width: size * 0.08, height: size * 0.08)
-                .offset(y: size * 0.42)
+                .stroke(
+                    Color.reflectPrimary.opacity(0.2),
+                    lineWidth: 2
+                )
+                .frame(width: size * 0.75, height: size * 0.75)
+            
+            // Second ripple
+            Circle()
+                .stroke(
+                    Color.reflectPrimary.opacity(0.35),
+                    lineWidth: 2.5
+                )
+                .frame(width: size * 0.5, height: size * 0.5)
+            
+            // First ripple (closest to center)
+            Circle()
+                .stroke(
+                    Color.reflectPrimary.opacity(0.5),
+                    lineWidth: 2.5
+                )
+                .frame(width: size * 0.3, height: size * 0.3)
+            
+            // Center impact point (where the stone hit)
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color.reflectPrimary.opacity(0.8),
+                            Color.reflectPrimary.opacity(0.6)
+                        ],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: size * 0.08
+                    )
+                )
+                .frame(width: size * 0.16, height: size * 0.16)
         }
         .frame(width: size, height: size)
     }
@@ -139,47 +120,50 @@ struct WaveShape: Shape {
     }
 }
 
-// MARK: - Alternative Logo: Minimal Person Icon
+// MARK: - Alternative Logo: Minimal Ripple
 
-/// Minimalist logo showing a single person (you're the only follower)
+/// Minimalist ripple logo - simplified concentric circles
+/// Represents introspection and personal reflection
 struct ReflectLogoMinimal: View {
     var size: CGFloat = 80
     var color: Color = .reflectPrimary
     
     var body: some View {
         ZStack {
-            // Outer circle (your space)
-            Circle()
-                .stroke(color.opacity(0.2), lineWidth: 3)
-                .frame(width: size * 1.2, height: size * 1.2)
-            
-            // Main circle background
+            // Background glow
             Circle()
                 .fill(
-                    LinearGradient(
+                    RadialGradient(
                         colors: [
-                            color.opacity(0.15),
-                            color.opacity(0.05)
+                            color.opacity(0.1),
+                            Color.clear
                         ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: size * 0.5
                     )
                 )
                 .frame(width: size, height: size)
             
-            // Person silhouette
-            VStack(spacing: 2) {
-                // Head
-                Circle()
-                    .fill(color)
-                    .frame(width: size * 0.25, height: size * 0.25)
-                
-                // Body (shoulders)
-                Capsule()
-                    .fill(color)
-                    .frame(width: size * 0.35, height: size * 0.3)
-            }
-            .offset(y: -size * 0.05)
+            // Outer ring
+            Circle()
+                .stroke(color.opacity(0.25), lineWidth: 2)
+                .frame(width: size * 0.85, height: size * 0.85)
+            
+            // Middle ring
+            Circle()
+                .stroke(color.opacity(0.45), lineWidth: 2.5)
+                .frame(width: size * 0.55, height: size * 0.55)
+            
+            // Inner ring
+            Circle()
+                .stroke(color.opacity(0.65), lineWidth: 3)
+                .frame(width: size * 0.3, height: size * 0.3)
+            
+            // Center dot
+            Circle()
+                .fill(color)
+                .frame(width: size * 0.15, height: size * 0.15)
         }
     }
 }
@@ -248,30 +232,120 @@ struct ReflectLogoMirror: View {
     }
 }
 
+// MARK: - Alternative Logo: Inner Light
+
+/// Abstract logo showing inner light/focus radiating outward
+/// Represents personal growth and self-awareness
+struct ReflectLogoInnerLight: View {
+    var size: CGFloat = 80
+    
+    var body: some View {
+        ZStack {
+            // Outer subtle glow
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color.reflectPrimary.opacity(0.05),
+                            Color.clear
+                        ],
+                        center: .center,
+                        startRadius: size * 0.2,
+                        endRadius: size * 0.6
+                    )
+                )
+                .frame(width: size * 1.2, height: size * 1.2)
+            
+            // Radiating arcs (like light beams)
+            ForEach(0..<6) { index in
+                Circle()
+                    .trim(from: CGFloat(index) / 12.0, to: CGFloat(index) / 12.0 + 0.04)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.reflectPrimary.opacity(0.6),
+                                Color.reflectSecondary.opacity(0.3)
+                            ],
+                            startPoint: .center,
+                            endPoint: .trailing
+                        ),
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                    )
+                    .frame(width: size * 0.75, height: size * 0.75)
+                    .rotationEffect(.degrees(Double(index) * 60))
+            }
+            
+            // Middle circle (boundary)
+            Circle()
+                .stroke(
+                    Color.reflectPrimary.opacity(0.2),
+                    lineWidth: 1.5
+                )
+                .frame(width: size * 0.5, height: size * 0.5)
+            
+            // Core center (the self)
+            ZStack {
+                // Bright center
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                Color.white,
+                                Color.reflectPrimary,
+                                Color.reflectSecondary
+                            ],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: size * 0.12
+                        )
+                    )
+                    .frame(width: size * 0.24, height: size * 0.24)
+                
+                // Inner glow
+                Circle()
+                    .fill(Color.reflectPrimary)
+                    .frame(width: size * 0.18, height: size * 0.18)
+                    .blur(radius: 4)
+            }
+        }
+    }
+}
+
 // MARK: - Preview
 
 #Preview("All Logos") {
     VStack(spacing: 40) {
-        Text("Ripple Logo (Animated)")
+        Text("Ripple Logo (Main)")
             .font(.caption)
-        ReflectLogo(size: 100, animated: true)
+            .foregroundStyle(.secondary)
+        ReflectLogo(size: 100)
         
         Divider()
         
-        Text("Minimal Person Logo")
+        Text("Minimal Ripple Logo")
             .font(.caption)
+            .foregroundStyle(.secondary)
         ReflectLogoMinimal(size: 100)
         
         Divider()
         
         Text("Mirror/Reflection Logo")
             .font(.caption)
+            .foregroundStyle(.secondary)
         ReflectLogoMirror(size: 100)
+        
+        Divider()
+        
+        Text("Inner Light Logo")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        ReflectLogoInnerLight(size: 100)
         
         Divider()
         
         Text("Different Sizes")
             .font(.caption)
+            .foregroundStyle(.secondary)
         HStack(spacing: 20) {
             ReflectLogo(size: 40)
             ReflectLogo(size: 60)
