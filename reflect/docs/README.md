@@ -138,7 +138,8 @@ reflect/
 │   ├── MoodSlider.swift
 │   ├── TagPicker.swift
 │   ├── PostCard.swift
-│   └── MemoriesLaneView.swift
+│   ├── MemoriesLaneView.swift
+│   └── ReflectLogo.swift
 │
 ├── Domain/                             # Business logic (to create)
 │   ├── Entities/
