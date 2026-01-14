@@ -44,8 +44,8 @@ final class OnboardingFlowUITests: XCTestCase {
         
         // Privacy Screen
         XCTAssertTrue(app.staticTexts["100% Private, 0% Social"].waitForExistence(timeout: 1))
-        XCTAssertTrue(app.staticTexts["No Followers"].exists)
-        XCTAssertTrue(app.staticTexts["No Likes or Comments"].exists)
+        XCTAssertTrue(app.staticTexts["No Social Pressure"].exists)
+        XCTAssertTrue(app.staticTexts["No Data Collection"].exists)
         
         // Continue to Sign Up
         app.buttons["Continue"].tap()
@@ -83,7 +83,7 @@ final class OnboardingFlowUITests: XCTestCase {
         // For now, just complete with default
         
         // Complete onboarding
-        app.buttons["Complete"].tap()
+        app.buttons["Complete Setup"].tap()
         
         // Should transition to main app
         // Verify onboarding is no longer shown
@@ -182,12 +182,11 @@ final class OnboardingFlowUITests: XCTestCase {
         
         XCTAssertTrue(app.staticTexts["Create Your First Persona"].waitForExistence(timeout: 1))
         
-        // Test tapping different color buttons
-        // Note: This assumes color buttons have accessibility labels
-        // You may need to add identifiers to the ColorButton views
+        // Test that color picker exists
+        XCTAssertTrue(app.staticTexts["Color"].exists)
         
-        // For now, just verify the screen exists
-        XCTAssertTrue(app.staticTexts["Choose a color for your persona"].exists)
+        // Verify info text
+        XCTAssertTrue(app.staticTexts["You can create more personas later"].exists)
     }
     
     func testSkipOptionalFields() throws {
@@ -206,7 +205,7 @@ final class OnboardingFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Create Your First Persona"].waitForExistence(timeout: 1))
         
         // Use default persona name and color
-        app.buttons["Complete"].tap()
+        app.buttons["Complete Setup"].tap()
         
         // Should complete successfully
         XCTAssertFalse(app.staticTexts["Welcome to Reflect"].waitForExistence(timeout: 2))
