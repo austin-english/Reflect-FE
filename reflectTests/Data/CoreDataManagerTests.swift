@@ -11,7 +11,7 @@ import Foundation
 @testable import reflect
 
 /// Tests for CoreDataManager actor
-@Suite("Core Data Manager Tests")
+@Suite("Core Data Manager Tests", .serialized)
 @MainActor
 struct CoreDataManagerTests {
     

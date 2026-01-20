@@ -13,7 +13,24 @@ actor CoreDataManager {
     
     // MARK: - Singleton
     
+    /// Shared instance for production use
+    /// 
+    /// **Note for Testing:** During test runs, you may see Core Data warnings about
+    /// multiple NSManagedObjectModel instances. This is expected because the shared
+    /// singleton loads at app startup while tests create in-memory instances.
+    /// These warnings are harmless - tests use the cached model to prevent actual conflicts.
     static let shared = CoreDataManager()
+    
+    #if DEBUG
+    /// Cached managed object model to prevent duplicate entity definitions in tests
+    private static let cachedModel: NSManagedObjectModel = {
+        guard let modelURL = Bundle.main.url(forResource: "ReflectDataModel", withExtension: "momd"),
+              let model = NSManagedObjectModel(contentsOf: modelURL) else {
+            fatalError("Failed to load Core Data model")
+        }
+        return model
+    }()
+    #endif
     
     // MARK: - Properties
     
@@ -27,11 +44,29 @@ actor CoreDataManager {
     // MARK: - Initialization
     
     private init(inMemory: Bool = false) {
-        // Load the model - create a COPY for in-memory stores to avoid conflicts
+        // Load the model - use cached model for in-memory stores to avoid conflicts
+        let model: NSManagedObjectModel
+        
+        #if DEBUG
+        if inMemory {
+            // Use cached model for tests to prevent duplicate entity definitions
+            model = Self.cachedModel
+        } else {
+            // Load fresh model for production use
+            guard let modelURL = Bundle.main.url(forResource: "ReflectDataModel", withExtension: "momd"),
+                  let loadedModel = NSManagedObjectModel(contentsOf: modelURL) else {
+                fatalError("Failed to load Core Data model")
+            }
+            model = loadedModel
+        }
+        #else
+        // Production: always load fresh model
         guard let modelURL = Bundle.main.url(forResource: "ReflectDataModel", withExtension: "momd"),
-              let model = NSManagedObjectModel(contentsOf: modelURL) else {
+              let loadedModel = NSManagedObjectModel(contentsOf: modelURL) else {
             fatalError("Failed to load Core Data model")
         }
+        model = loadedModel
+        #endif
         
         container = NSPersistentContainer(name: "ReflectDataModel", managedObjectModel: model)
         
@@ -371,6 +406,7 @@ extension CoreDataManager {
     }()
     
     /// Creates a new in-memory instance for testing
+    /// Uses a shared model to prevent entity definition conflicts
     static func inMemory() -> CoreDataManager {
         CoreDataManager(inMemory: true)
     }
