@@ -53,12 +53,14 @@ Reflect uses **MVVM (Model-View-ViewModel) + Clean Architecture** for a maintain
 
 ## 📂 File Structure
 
-### Current Structure (Phase 2 Complete)
+### Current Structure (Phase 3 In Progress)
 
 ```
 reflect/
 ├── App/
 │   ├── reflectApp.swift              # @main app entry point
+│   ├── DependencyContainer.swift     # Production DI (real Core Data) ✅ Phase 3
+│   ├── PreviewHelpers.swift          # Preview/Test DI (in-memory Core Data) ✅ Phase 3
 │   └── ContentView.swift             # Temporary component showcase
 │
 ├── Design/
@@ -101,15 +103,22 @@ reflect/
 │       ├── CoreDataManager.swift
 │       └── Mappers.swift
 │
-├── Presentation/                     # Phase 2 ✅
+├── Presentation/                     # Phases 2-3 ✅
+│   ├── Navigation/
+│   │   └── AppCoordinator.swift      # Tab navigation ✅ Phase 3
+│   │
 │   └── Screens/
-│       └── Onboarding/
-│           ├── OnboardingCoordinator.swift
-│           ├── OnboardingViewModel.swift
-│           ├── WelcomeView.swift
-│           ├── PrivacyView.swift
-│           ├── SignUpView.swift
-│           └── PersonaSetupView.swift
+│       ├── Onboarding/               # ✅ Phase 2
+│       │   ├── OnboardingCoordinator.swift
+│       │   ├── OnboardingViewModel.swift
+│       │   ├── WelcomeView.swift
+│       │   ├── PrivacyView.swift
+│       │   ├── SignUpView.swift
+│       │   └── PersonaSetupView.swift
+│       │
+│       └── Feed/                     # ✅ Phase 3
+│           ├── FeedView.swift
+│           └── FeedViewModel.swift
 │
 └── Tests/
     ├── reflectTests/                 # Unit tests target
@@ -133,11 +142,13 @@ reflect/
 │
 ├── App/
 │   ├── reflectApp.swift          # @main entry point
+│   ├── DependencyContainer.swift # Production DI (persistent Core Data) ✅ Phase 3
+│   ├── PreviewHelpers.swift      # Preview/Test DI (in-memory Core Data) ✅ Phase 3
 │   └── Configuration/
-│       └── Environment.swift     # Dev/Prod configs
+│       └── Environment.swift     # Dev/Prod configs (future)
 │
 ├── Design/
-│   └── DesignSystem.swift        # Design tokens & styles
+│   └── DesignSystem.swift        # Design tokens & styles ✅
 │
 ├── Domain/                        # Phase 1 & 2
 │   ├── Entities/                 # Pure Swift models (Phase 1 ✅)
@@ -997,6 +1008,443 @@ struct MoodSlider: View {
     }
 }
 ```
+
+---
+
+## 🔌 Dependency Injection
+
+### DependencyContainer
+
+**Purpose:** Manages creation and wiring of all app dependencies.
+
+**Location:** `App/DependencyContainer.swift`
+
+**Responsibilities:**
+- Create repository instances (backed by Core Data)
+- Provide factory methods for ViewModels
+- Centralize dependency configuration
+- Enable easy testing (swap real for mock dependencies)
+
+**Pattern:** Singleton with lazy initialization
+
+**Example:**
+```swift
+@MainActor
+final class DependencyContainer {
+    static let shared = DependencyContainer()
+    
+    // Core Data manager
+    private let coreDataManager = CoreDataManager.shared
+    
+    // Repositories (lazy loaded)
+    lazy var postRepository: PostRepository = {
+        PostRepositoryImpl(coreDataManager: coreDataManager)
+    }()
+    
+    lazy var personaRepository: PersonaRepository = {
+        PersonaRepositoryImpl(coreDataManager: coreDataManager)
+    }()
+    
+    // ViewModel factories
+    func makeFeedViewModel() -> FeedViewModel {
+        FeedViewModel(
+            postRepository: postRepository,
+            personaRepository: personaRepository
+        )
+    }
+}
+```
+
+**Usage in Views:**
+```swift
+struct FeedView: View {
+    @State private var viewModel: FeedViewModel
+    
+    init(viewModel: FeedViewModel? = nil) {
+        // Use provided viewModel (for previews/tests)
+        // Or create with real dependencies
+        _viewModel = State(
+            initialValue: viewModel ?? DependencyContainer.shared.makeFeedViewModel()
+        )
+    }
+}
+```
+
+**Benefits:**
+- ✅ Single source of truth for dependency creation
+- ✅ Testable (inject mock dependencies in tests/previews)
+- ✅ No scattered `CoreDataManager.shared` calls throughout the app
+- ✅ Easy to swap implementations (e.g., CloudKit vs Core Data)
+
+**DependencyContainer vs PreviewHelpers Comparison:**
+
+| Aspect | DependencyContainer | PreviewHelpers |
+|--------|---------------------|----------------|
+| **Used in** | Production app | Previews & Tests only |
+| **Storage type** | Persistent (SQLite on disk) | In-memory (RAM) |
+| **Data survives** | App restarts | Cleared on restart |
+| **Core Data instance** | `CoreDataManager.shared` | `CoreDataManager.preview` |
+| **Purpose** | Real user data | Sample visualization data |
+| **When created** | App launch | Preview compilation |
+| **Example usage** | `DependencyContainer.shared.makeFeedViewModel()` | `FeedViewModel.preview` |
+| **Repositories** | PostRepositoryImpl (real) | PostRepositoryImpl (in-memory) |
+| **Sample data** | None (user creates) | Pre-populated posts & personas |
+
+**Code Example - Where Each is Used:**
+
+```swift
+// 1️⃣ PRODUCTION (DependencyContainer)
+@main
+struct ReflectApp: App {
+    var body: some Scene {
+        WindowGroup {
+            TabView {
+                FeedView(
+                    viewModel: DependencyContainer.shared.makeFeedViewModel()
+                    //        ^^^^^^^^^^^^^^^^^^^^^^ Production DI
+                )
+            }
+        }
+    }
+}
+
+// 2️⃣ PREVIEW (PreviewHelpers)
+#Preview("Feed") {
+    FeedView(viewModel: FeedViewModel.preview)
+    //                  ^^^^^^^^^^^^^^^^^^^^ Preview DI
+}
+```
+
+**When NOT to use:**
+- For simple value types (String, Int, etc.)
+- For SwiftUI environment objects (use `.environment()` instead)
+- For globally available services (like DesignSystem extensions)
+
+---
+
+### PreviewHelpers (Preview & Test DI)
+
+**Purpose:** Provides in-memory Core Data stack with sample data for SwiftUI previews and tests.
+
+**Location:** `App/PreviewHelpers.swift` ✅ Phase 3
+
+**Key Difference from DependencyContainer:**
+- **DependencyContainer** → Production (persistent storage, writes to disk)
+- **PreviewHelpers** → Development only (in-memory, data cleared on restart)
+
+**Visual Flow Diagram:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      PRODUCTION APP                              │
+│                                                                  │
+│  ContentView                                                     │
+│      ↓                                                          │
+│  DependencyContainer.shared.makeFeedViewModel()                 │
+│      ↓                                                          │
+│  PostRepositoryImpl(coreDataManager: CoreDataManager.shared)    │
+│      ↓                                                          │
+│  CoreDataManager.shared                                         │
+│      ↓                                                          │
+│  NSPersistentContainer (SQLite)                                 │
+│      ↓                                                          │
+│  ~/Library/Application Support/com.reflect.app/                 │
+│  (Persistent storage - survives app restart)                    │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                     SWIFTUI PREVIEW                              │
+│                                                                  │
+│  #Preview { FeedView() }  // Uses default parameter             │
+│      ↓                                                          │
+│  FeedViewModel.preview                                          │
+│      ↓                                                          │
+│  PreviewContainer.shared                                        │
+│      ↓                                                          │
+│  PostRepositoryImpl(coreDataManager: CoreDataManager.preview)   │
+│      ↓                                                          │
+│  CoreDataManager.preview                                        │
+│      ↓                                                          │
+│  NSPersistentContainer (NSInMemoryStoreType)                    │
+│      ↓                                                          │
+│  RAM only - sample data pre-populated                           │
+│  (Cleared on each preview refresh)                              │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                        UNIT TEST                                 │
+│                                                                  │
+│  @Test func testFeed() async throws {                           │
+│      let manager = CoreDataManager(inMemory: true, identifier:  │
+│                                     "test-\(UUID())")            │
+│      let repo = PostRepositoryImpl(coreDataManager: manager)    │
+│      let viewModel = FeedViewModel(postRepository: repo, ...)   │
+│      ↓                                                          │
+│  CoreDataManager (custom in-memory instance)                    │
+│      ↓                                                          │
+│  NSPersistentContainer (NSInMemoryStoreType)                    │
+│      ↓                                                          │
+│  RAM only - isolated per test                                   │
+│  (No shared state between tests)                                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Architecture:**
+
+```swift
+@MainActor
+final class PreviewContainer {
+    static let shared = PreviewContainer()
+    
+    // In-memory Core Data (no persistence)
+    private let coreDataManager: CoreDataManager  // CoreDataManager.preview
+    
+    // Real repository implementations (same as production!)
+    let postRepository: PostRepository  // PostRepositoryImpl
+    let personaRepository: PersonaRepository
+    let userRepository: UserRepository
+    let mediaItemRepository: MediaItemRepository
+    
+    // Sample data for previews
+    private(set) var sampleUserId: UUID!
+    private(set) var samplePersonaIds: [UUID] = []
+    private(set) var samplePostIds: [UUID] = []
+    
+    private init() {
+        // Create in-memory Core Data (NSInMemoryStoreType)
+        self.coreDataManager = CoreDataManager.preview
+        
+        // Use REAL repository implementations
+        self.postRepository = PostRepositoryImpl(coreDataManager: coreDataManager)
+        self.personaRepository = PersonaRepositoryImpl(coreDataManager: coreDataManager)
+        // ...
+        
+        // Populate sample data
+        Task { await populateSampleData() }
+    }
+}
+```
+
+**Three Core Data Instances:**
+
+```swift
+// 1. Production (persistent to disk)
+CoreDataManager.shared  // Used by DependencyContainer
+↓
+NSPersistentContainer (SQLite store)
+↓
+~/Library/Application Support/com.reflect.app/
+
+// 2. Preview (in-memory with sample data)
+CoreDataManager.preview  // Used by PreviewContainer.shared
+↓
+NSPersistentContainer (NSInMemoryStoreType)
+↓
+Sample user, 3 personas, 5 posts
+
+// 3. Empty Preview (in-memory, no data)
+CoreDataManager.emptyPreview  // Used by PreviewContainer.empty()
+↓
+NSPersistentContainer (NSInMemoryStoreType)
+↓
+Empty database (for testing empty states)
+```
+
+**How Previews vs Production is Determined:**
+
+```swift
+// 1️⃣ PRODUCTION APP
+struct ContentView: View {
+    var body: some View {
+        FeedView(
+            viewModel: DependencyContainer.shared.makeFeedViewModel()
+        )
+    }
+}
+// Uses: CoreDataManager.shared (persistent storage) ✅
+
+// 2️⃣ SWIFTUI PREVIEW
+#Preview("Feed with Posts") {
+    FeedView(viewModel: FeedViewModel.preview)
+}
+// Uses: CoreDataManager.preview (in-memory) ✅
+
+#Preview("Feed Empty") {
+    FeedView(viewModel: FeedViewModel.emptyPreview)
+}
+// Uses: CoreDataManager.emptyPreview (in-memory, empty) ✅
+
+// 3️⃣ UNIT TESTS
+@Test func testFeedViewModel() async throws {
+    // Option 1: Use preview container
+    let viewModel = FeedViewModel.preview
+    
+    // Option 2: Create isolated in-memory instance
+    let manager = CoreDataManager(inMemory: true, identifier: "test-\(UUID())")
+    let postRepo = PostRepositoryImpl(coreDataManager: manager)
+    let personaRepo = PersonaRepositoryImpl(coreDataManager: manager)
+    let viewModel = FeedViewModel(postRepository: postRepo, personaRepository: personaRepo)
+}
+// Uses: Custom in-memory instances for isolation ✅
+```
+
+**Automatic Separation Mechanism:**
+
+The key is **dependency injection** in SwiftUI views:
+
+```swift
+struct FeedView: View {
+    @State private var viewModel: FeedViewModel
+    
+    // Default parameter for previews
+    init(viewModel: FeedViewModel = .preview) {
+        self._viewModel = State(initialValue: viewModel)
+    }
+}
+
+// Preview code uses default
+#Preview { FeedView() }  // ← Uses FeedViewModel.preview
+
+// Production code injects real viewModel
+FeedView(viewModel: DependencyContainer.shared.makeFeedViewModel())
+```
+
+**ViewModel Preview Extensions:**
+
+```swift
+extension FeedViewModel {
+    /// Preview with sample data
+    @MainActor
+    static var preview: FeedViewModel {
+        let container = PreviewContainer.shared
+        return FeedViewModel(
+            postRepository: container.postRepository,
+            personaRepository: container.personaRepository
+        )
+    }
+    
+    /// Preview with empty state
+    @MainActor
+    static var emptyPreview: FeedViewModel {
+        let container = PreviewContainer.empty()
+        return FeedViewModel(
+            postRepository: container.postRepository,
+            personaRepository: container.personaRepository
+        )
+    }
+}
+```
+
+**Sample Data Population:**
+
+```swift
+private func populateSampleData() async {
+    do {
+        // 1. Create sample user
+        let user = User(
+            id: UUID(),
+            email: "preview@reflect.app",
+            name: "Preview User",
+            createdAt: Date(),
+            isPremium: false,
+            hasCompletedOnboarding: true
+        )
+        try await userRepository.create(user)
+        
+        // 2. Create 3 sample personas
+        let personas = [
+            Persona(name: "Personal", color: .blue, icon: .personCircle, ...),
+            Persona(name: "Work", color: .purple, icon: .briefcase, ...),
+            Persona(name: "Creative", color: .pink, icon: .paintpalette, ...)
+        ]
+        for persona in personas {
+            try await personaRepository.create(persona)
+        }
+        
+        // 3. Create 5 sample posts
+        let posts = [
+            Post(caption: "Beach sunset 🌅", mood: 9, personaId: personas[0].id, ...),
+            Post(caption: "Great workout!", mood: 8, personaId: personas[0].id, ...),
+            // ... 3 more posts
+        ]
+        for post in posts {
+            try await postRepository.create(post)
+        }
+    } catch {
+        print("⚠️ Preview data population failed: \(error)")
+    }
+}
+```
+
+**Benefits:**
+
+✅ **Real implementations in previews** - No mock repositories needed
+✅ **Isolated data** - Previews don't pollute production database
+✅ **Fast iteration** - See UI with realistic data instantly
+✅ **Multiple scenarios** - `.preview` (with data) and `.emptyPreview` (empty state)
+✅ **Same behavior as production** - Tests actually use Core Data stack
+✅ **DRY principle** - Single source of sample data
+✅ **Type-safe** - Uses real domain models, not mock objects
+
+**When to Use Each:**
+
+| Context | Use | Reason |
+|---------|-----|--------|
+| **Production app** | `DependencyContainer.shared` | Persistent storage, real user data |
+| **SwiftUI previews** | `PreviewContainer.shared` | In-memory, sample data for visualization |
+| **Empty state previews** | `PreviewContainer.empty()` | In-memory, empty database |
+| **Unit tests** | Custom in-memory instance | Isolated per test, no shared state |
+| **UI tests** | `DependencyContainer.shared` | Test real persistence behavior |
+
+**File Organization:**
+
+```
+App/
+├── DependencyContainer.swift    # Production DI (persistent Core Data)
+└── PreviewHelpers.swift         # Preview/Test DI (in-memory Core Data)
+```
+
+**Why NOT use mocks?**
+
+❌ **Old approach (mocks in ViewModels):**
+```swift
+// BAD: Mock repositories hardcoded in ViewModel
+private final class MockPostRepository: PostRepository {
+    func fetchAll() -> [Post] { Post.mockPosts }
+}
+
+extension FeedViewModel {
+    static var preview: FeedViewModel {
+        FeedViewModel(postRepository: MockPostRepository())
+    }
+}
+```
+
+**Problems:**
+- Mock code pollutes production files
+- Mocks behave differently than real implementations
+- Hard to maintain as repository protocols evolve
+- Doesn't test actual Core Data behavior
+
+✅ **New approach (real repositories with in-memory Core Data):**
+```swift
+// GOOD: Real implementations, in-memory storage
+extension FeedViewModel {
+    static var preview: FeedViewModel {
+        let container = PreviewContainer.shared
+        return FeedViewModel(
+            postRepository: container.postRepository,  // PostRepositoryImpl ✅
+            personaRepository: container.personaRepository  // PersonaRepositoryImpl ✅
+        )
+    }
+}
+```
+
+**Benefits:**
+- Previews use EXACT same code as production
+- Validates Core Data mapping logic
+- No drift between mock and real behavior
+- Cleaner code separation
 
 ---
 

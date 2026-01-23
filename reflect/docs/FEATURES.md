@@ -733,27 +733,31 @@ App/
 
 ---
 
-## 📋 Phase 3: Feed Display (Week 4) - READY TO START
+## 📋 Phase 3: Feed Display (Week 4) - IN PROGRESS
 
 **Goal**: Display posts in chronological feed  
-**Status**: 🔄 Ready to Start  
+**Status**: 🔄 In Progress  
 **Duration**: 1 week  
 
 ### Features to Implement
 
 #### Feed View
-- [ ] **Main Feed Screen**
-  - Chronological post display
-  - PostCard component integration
+- [x] **Main Feed Screen**
+  - Chronological post display with PostRowView
   - Pull-to-refresh
-  - Infinite scroll / pagination
-- [ ] **Empty State**
+  - Loading state
+  - ~~PostCard component integration~~ (using simpler PostRowView for now)
+  - ~~Infinite scroll / pagination~~ (deferred to future phase)
+- [x] **Empty State**
   - Welcome message for new users
   - CTA to create first post
   - Helpful tips
+- [ ] **Connect to Real Data**
+  - Replace preview/mock data with actual Core Data repositories
+  - Wire up dependency injection
 
 #### Navigation
-- [ ] **Tab Bar**
+- [x] **Tab Bar** (AppCoordinator)
   - Feed tab
   - Create tab (placeholder)
   - Profile tab (placeholder)
@@ -765,17 +769,74 @@ App/
   - Edit/delete options
 
 ### Technical Implementation
-- [ ] FeedView with ScrollView
-- [ ] FeedViewModel with Observable
+- [x] FeedView with ScrollView
+- [x] FeedViewModel with Observable
+- [x] AppCoordinator with tab navigation
+- [x] PostRowView (private component in FeedView)
+- [x] Mock data for previews
 - [ ] PostDetailView
-- [ ] Fetch posts from repository
+- [ ] Connect to real PostRepository and PersonaRepository
 - [ ] Handle loading states
 - [ ] Error handling UI
+
+### Files Created
+```
+Presentation/
+├── Navigation/
+│   └── AppCoordinator.swift         # Tab bar navigation
+├── Screens/
+│   └── Feed/
+│       ├── FeedView.swift            # Main feed UI with PostRowView
+│       └── FeedViewModel.swift       # Feed business logic
+```
+
+### Components to Extract Later (Phase 4+)
+**Note**: These components are currently embedded in FeedView but should be extracted to `Presentation/Common/` when they're needed by other screens:
+
+- [ ] **PostRowView** → `Presentation/Common/PostRowView.swift`
+  - Currently private to FeedView
+  - Extract when needed by search, profile, or other list views
+  
+- [ ] **EmptyStateView** → `Presentation/Common/EmptyStateView.swift`
+  - Currently `emptyStateView` computed property
+  - Make generic with customizable icon, title, message
+  - Reuse for empty search results, empty profile, etc.
+  
+- [ ] **LoadingView** → `Presentation/Common/LoadingView.swift`
+  - Currently `loadingView` computed property
+  - Make generic with optional message
+  - Reuse across all loading states
+
+- [ ] **ErrorView** → `Presentation/Common/ErrorView.swift`
+  - Currently using `.alert()` modifier
+  - Create reusable inline error banner
+  - Include retry action
+
+**Refactor Trigger**: When we build Phase 4 (Post Creation) or Phase 5 (Profile), check if these patterns repeat. If yes, extract to Common.
 
 ### Testing
 - [ ] Test feed with various post counts
 - [ ] Test empty state
 - [ ] Test navigation flows
+- [ ] Test pull-to-refresh
+- [ ] Test error handling
+
+### Design System Usage
+**All components properly use DesignSystem tokens:**
+- ✅ Spacing: `.tight`, `.xsmall`, `.small`, `.medium`, `.large`
+- ✅ Typography: `.headlineLarge`, `.bodyMedium`, `.bodySmall`, `.caption`
+- ✅ Colors: `.reflectPrimary`, `.reflectSurface`, `.reflectTextPrimary/Secondary/Tertiary`
+- ✅ Color utilities: `Color(hex:)`, `Color.moodColor(for:)`
+- ✅ Corner radius: `RoundedRectangle(cornerRadius: 12)` (consider adding to DesignSystem.CornerRadius)
+
+### Next Steps
+1. ✅ Create AppCoordinator with tab navigation
+2. ✅ Create FeedViewModel with mock repositories
+3. ✅ Create FeedView with PostRowView
+4. 🔄 Connect FeedView to real Core Data repositories
+5. Create PostDetailView for tapping on posts
+6. Test complete navigation flow
+7. Update reflectApp.swift to use AppCoordinator
 
 ---
 

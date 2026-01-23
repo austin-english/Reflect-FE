@@ -27,8 +27,8 @@ struct reflectApp: App {
     var body: some Scene {
         WindowGroup {
             if hasCompletedOnboarding {
-                // Main app (currently showing component showcase)
-                ContentView()
+                // Main app with tab navigation
+                AppCoordinatorView()
             } else {
                 // Show onboarding
                 OnboardingCoordinator {

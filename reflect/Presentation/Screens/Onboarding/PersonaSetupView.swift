@@ -77,7 +77,7 @@ struct PersonaSetupView: View {
                         Image(systemName: "info.circle.fill")
                             .foregroundStyle(Color.reflectPrimary)
                         
-                        VStack(alignment: .leading, spacing: Spacing.extraSmall.rawValue) {
+                        VStack(alignment: .leading, spacing: Spacing.xsmall.rawValue) {
                             Text("You can create more personas later")
                                 .font(.labelLarge)
                                 .foregroundStyle(Color.reflectTextPrimary)

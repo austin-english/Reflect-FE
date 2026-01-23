@@ -96,6 +96,14 @@ actor CoreDataManager {
         container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
     }
     
+    #if DEBUG
+    /// Creates an in-memory Core Data manager for previews and tests
+    /// - Parameter identifier: Optional identifier for the store (useful for multiple preview instances)
+    init(inMemory: Bool, identifier: String) {
+        self.init(inMemory: inMemory)
+    }
+    #endif
+    
     // MARK: - Context Management
     
     /// Creates a new background context for background operations
@@ -396,17 +404,15 @@ extension CoreDataManager {
     }
 }
 
-// MARK: - Preview Helper
+// MARK: - Testing Helper
 
 #if DEBUG
 extension CoreDataManager {
-    /// Creates an in-memory Core Data stack for previews and testing
-    static let preview: CoreDataManager = {
-        CoreDataManager(inMemory: true)
-    }()
-    
     /// Creates a new in-memory instance for testing
     /// Uses a shared model to prevent entity definition conflicts
+    /// 
+    /// Note: For previews, use PreviewHelpers.swift which provides
+    /// CoreDataManager.preview and CoreDataManager.emptyPreview
     static func inMemory() -> CoreDataManager {
         CoreDataManager(inMemory: true)
     }

@@ -123,7 +123,7 @@ extension Color {
 enum Spacing: CGFloat {
     case none = 0
     case tight = 2       // 2pt - Very tight spacing
-    case extraSmall = 4  // 4pt - Minimal spacing
+    case xsmall = 4      // 4pt - Extra small spacing
     case small = 8       // 8pt - Small spacing
     case medium = 16     // 16pt - Standard spacing
     case large = 24      // 24pt - Large spacing

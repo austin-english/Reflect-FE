@@ -98,7 +98,7 @@ private struct FeatureRow: View {
                 .background(Color.reflectPrimary.opacity(0.1))
                 .cornerRadius(CornerRadius.small.rawValue)
             
-            VStack(alignment: .leading, spacing: Spacing.extraSmall.rawValue) {
+            VStack(alignment: .leading, spacing: Spacing.xsmall.rawValue) {
                 Text(title)
                     .font(.headlineMedium)
                     .foregroundStyle(Color.reflectTextPrimary)

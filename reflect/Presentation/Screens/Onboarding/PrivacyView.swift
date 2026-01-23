@@ -105,7 +105,7 @@ private struct PrivacyFeature: View {
                 .background(Color.reflectSuccess.opacity(0.1))
                 .cornerRadius(CornerRadius.small.rawValue)
             
-            VStack(alignment: .leading, spacing: Spacing.extraSmall.rawValue) {
+            VStack(alignment: .leading, spacing: Spacing.xsmall.rawValue) {
                 Text(title)
                     .font(.headlineMedium)
                     .foregroundStyle(Color.reflectTextPrimary)
