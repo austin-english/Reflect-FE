@@ -34,6 +34,9 @@ final class PreviewContainer {
     private(set) var samplePersonaIds: [UUID] = []
     private(set) var samplePostIds: [UUID] = []
     
+    // Track if data has been populated
+    private var isDataPopulated = false
+    
     // MARK: - Initialization
     
     /// Main initializer (called by singleton)
@@ -54,10 +57,26 @@ final class PreviewContainer {
         
         // Only populate sample data if not empty
         if !isEmpty {
-            Task {
-                await populateSampleData()
+            // Populate data synchronously on init (for previews/debug)
+            Task { @MainActor in
+                await populateSampleDataIfNeeded()
             }
         }
+    }
+    
+    // MARK: - Data Population
+    
+    /// Ensures sample data is populated (can be called multiple times safely)
+    func populateSampleDataIfNeeded() async {
+        guard !isDataPopulated else { 
+            print("✅ Preview data already populated")
+            return 
+        }
+        
+        print("🔄 Populating preview data...")
+        await populateSampleData()
+        isDataPopulated = true
+        print("✅ Preview data population complete!")
     }
     
     // MARK: - Sample Data Population
@@ -137,7 +156,8 @@ final class PreviewContainer {
         let persona1 = personaIds[0]
         let persona2 = personaIds[1]
         
-        return [
+        // Create sample posts with placeholder images
+        let posts = [
             Post(
                 id: UUID(),
                 caption: "Beautiful sunset at the beach today. Feeling grateful for moments like these. 🌅",
@@ -146,7 +166,19 @@ final class PreviewContainer {
                 createdAt: Date().addingTimeInterval(-3600), // 1 hour ago
                 location: "Santa Monica Beach",
                 personaId: persona1,
-                mediaItems: [],
+                mediaItems: [
+                    MediaItem(
+                        id: UUID(),
+                        type: .photo,
+                        filename: "sunset_beach.jpg",
+                        thumbnailFilename: "sunset_beach_thumb.jpg",
+                        createdAt: Date().addingTimeInterval(-3600),
+                        fileSize: 524288, // 512 KB
+                        postId: UUID(), // Will be set when post is created
+                        width: 1920,
+                        height: 1080
+                    )
+                ],
                 activityTags: ["Beach", "Sunset", "Photography"],
                 peopleTags: ["Sarah"]
             ),
@@ -156,9 +188,21 @@ final class PreviewContainer {
                 mood: 8,
                 experienceRating: 9,
                 createdAt: Date().addingTimeInterval(-86400), // 1 day ago
-                location: nil,
+                location: "Gold's Gym",
                 personaId: persona1,
-                mediaItems: [],
+                mediaItems: [
+                    MediaItem(
+                        id: UUID(),
+                        type: .photo,
+                        filename: "workout_gym.jpg",
+                        thumbnailFilename: "workout_gym_thumb.jpg",
+                        createdAt: Date().addingTimeInterval(-86400),
+                        fileSize: 412000,
+                        postId: UUID(),
+                        width: 1080,
+                        height: 1920
+                    )
+                ],
                 activityTags: ["Exercise", "Gym", "Morning"],
                 peopleTags: []
             ),
@@ -170,7 +214,19 @@ final class PreviewContainer {
                 createdAt: Date().addingTimeInterval(-172800), // 2 days ago
                 location: "Home",
                 personaId: persona2,
-                mediaItems: [],
+                mediaItems: [
+                    MediaItem(
+                        id: UUID(),
+                        type: .photo,
+                        filename: "coffee_coding.jpg",
+                        thumbnailFilename: "coffee_coding_thumb.jpg",
+                        createdAt: Date().addingTimeInterval(-172800),
+                        fileSize: 380000,
+                        postId: UUID(),
+                        width: 1920,
+                        height: 1080
+                    )
+                ],
                 activityTags: ["Work", "Coding", "Coffee"],
                 peopleTags: []
             ),
@@ -182,7 +238,19 @@ final class PreviewContainer {
                 createdAt: Date().addingTimeInterval(-259200), // 3 days ago
                 location: "Home",
                 personaId: persona1,
-                mediaItems: [],
+                mediaItems: [
+                    MediaItem(
+                        id: UUID(),
+                        type: .photo,
+                        filename: "family_dinner.jpg",
+                        thumbnailFilename: "family_dinner_thumb.jpg",
+                        createdAt: Date().addingTimeInterval(-259200),
+                        fileSize: 456000,
+                        postId: UUID(),
+                        width: 1920,
+                        height: 1440
+                    )
+                ],
                 activityTags: ["Family", "Dinner", "Quality Time"],
                 peopleTags: ["Mom", "Dad", "Emma"]
             ),
@@ -194,11 +262,34 @@ final class PreviewContainer {
                 createdAt: Date().addingTimeInterval(-345600), // 4 days ago
                 location: nil,
                 personaId: persona2,
-                mediaItems: [],
+                mediaItems: [
+                    MediaItem(
+                        id: UUID(),
+                        type: .photo,
+                        filename: "rainy_reading.jpg",
+                        thumbnailFilename: "rainy_reading_thumb.jpg",
+                        createdAt: Date().addingTimeInterval(-345600),
+                        fileSize: 390000,
+                        postId: UUID(),
+                        width: 1080,
+                        height: 1350
+                    )
+                ],
                 activityTags: ["Reading", "Relaxation", "Indoor"],
                 peopleTags: []
             )
         ]
+        
+        // Update mediaItems postId to match their parent post
+        return posts.map { post in
+            var updatedPost = post
+            updatedPost.mediaItems = post.mediaItems.map { media in
+                var updatedMedia = media
+                updatedMedia.postId = post.id
+                return updatedMedia
+            }
+            return updatedPost
+        }
     }
     
     // MARK: - Empty Container
@@ -239,10 +330,20 @@ extension FeedViewModel {
     @MainActor
     static var preview: FeedViewModel {
         let container = PreviewContainer.shared
-        return FeedViewModel(
+        
+        // Ensure data is populated before returning
+        Task {
+            await container.populateSampleDataIfNeeded()
+        }
+        
+        let viewModel = FeedViewModel(
             postRepository: container.postRepository,
             personaRepository: container.personaRepository
         )
+        
+        print("📱 Created FeedViewModel.preview")
+        
+        return viewModel
     }
     
     /// Preview instance with empty data (for empty states)

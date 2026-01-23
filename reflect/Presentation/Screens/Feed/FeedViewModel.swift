@@ -53,20 +53,25 @@ final class FeedViewModel {
         guard isInitialLoad else { return }
         isInitialLoad = false
         
+        print("🔄 FeedViewModel: Loading initial data...")
+        
         isLoading = true
         errorMessage = nil
         
         do {
             // Load personas first
             personas = try await personaRepository.fetchAll()
+            print("✅ Loaded \(personas.count) personas")
             
             // Load posts
             await loadPosts()
         } catch {
+            print("❌ Failed to load data: \(error)")
             errorMessage = "Failed to load data: \(error.localizedDescription)"
         }
         
         isLoading = false
+        print("✅ FeedViewModel: Initial load complete. Posts: \(posts.count)")
     }
     
     /// Refresh posts (pull-to-refresh)
@@ -113,15 +118,25 @@ final class FeedViewModel {
         do {
             if let selectedPersona {
                 // Filter by persona
+                print("🔍 Fetching posts for persona: \(selectedPersona.name)")
                 posts = try await postRepository.fetchPosts(for: selectedPersona.id, limit: nil, offset: nil)
             } else {
                 // Load all posts
+                print("🔍 Fetching all posts...")
                 posts = try await postRepository.fetchAll()
             }
             
             // Sort by date (most recent first)
             posts.sort { $0.createdAt > $1.createdAt }
+            
+            print("✅ Loaded \(posts.count) posts")
+            if posts.isEmpty {
+                print("⚠️ No posts found in repository!")
+            } else {
+                print("📝 First post: \(posts.first?.caption.prefix(30) ?? "")")
+            }
         } catch {
+            print("❌ Failed to load posts: \(error)")
             errorMessage = "Failed to load posts: \(error.localizedDescription)"
             posts = []
         }

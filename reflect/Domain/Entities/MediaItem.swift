@@ -8,7 +8,7 @@
 import Foundation
 
 /// Domain entity representing a photo or video attached to a post
-struct MediaItem: Identifiable, Codable {
+struct MediaItem: Identifiable, Codable, Hashable {
     // MARK: - Properties
     
     let id: UUID
@@ -58,7 +58,7 @@ struct MediaItem: Identifiable, Codable {
 // MARK: - Media Type
 
 extension MediaItem {
-    enum MediaType: String, Codable {
+    enum MediaType: String, Codable, Hashable {
         case photo
         case video
         

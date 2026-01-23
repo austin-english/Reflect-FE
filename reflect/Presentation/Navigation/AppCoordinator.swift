@@ -70,12 +70,49 @@ final class AppCoordinator {
 /// Root view that coordinates tab navigation
 struct AppCoordinatorView: View {
     @State private var coordinator = AppCoordinator()
+    @State private var isPreviewDataReady = false
     
     var body: some View {
+        #if DEBUG
+        // In debug mode, ensure preview data is loaded first
+        Group {
+            if isPreviewDataReady {
+                tabView
+            } else {
+                loadingView
+                    .task {
+                        // Ensure preview data is populated
+                        await PreviewContainer.shared.populateSampleDataIfNeeded()
+                        isPreviewDataReady = true
+                    }
+            }
+        }
+        #else
+        // In release mode, show immediately
+        tabView
+        #endif
+    }
+    
+    private var loadingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+            Text("Loading preview data...")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var tabView: some View {
         TabView(selection: $coordinator.selectedTab) {
             // Feed Tab
             NavigationStack {
+                #if DEBUG
+                // Use preview data during development
+                FeedView(viewModel: FeedViewModel.preview)
+                #else
+                // Use real data in production
                 FeedView(viewModel: DependencyContainer.shared.makeFeedViewModel())
+                #endif
             }
             .tabItem {
                 Label(AppCoordinator.Tab.feed.title, 
@@ -95,7 +132,13 @@ struct AppCoordinatorView: View {
             
             // Profile Tab (Placeholder for Phase 5)
             NavigationStack {
-                ProfilePlaceholderView()
+                #if DEBUG
+                // Use preview data during development
+                ProfileView(viewModel: FeedViewModel.preview)
+                #else
+                // Use real data in production
+                ProfileView(viewModel: DependencyContainer.shared.makeFeedViewModel())
+                #endif
             }
             .tabItem {
                 Label(AppCoordinator.Tab.profile.title,

@@ -8,7 +8,7 @@
 import Foundation
 
 /// Domain entity representing a user's journal post
-struct Post: Identifiable, Codable {
+struct Post: Identifiable, Codable, Hashable {
     // MARK: - Properties
     
     let id: UUID
@@ -106,7 +106,7 @@ struct Post: Identifiable, Codable {
 // MARK: - Post Type
 
 extension Post {
-    enum PostType: String, Codable {
+    enum PostType: String, Codable, Hashable {
         case photo
         case video
         case text
