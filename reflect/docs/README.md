@@ -47,7 +47,15 @@ Reflect is a personal journaling app that combines the familiar feel of social m
   - ✅ Input validation and error handling
   - ✅ "Anti-social social media" branding throughout
   - ✅ CompleteOnboardingUseCase integration
-- 🔄 **Phase 3 Next**: Ready to begin Feed Display
+- 🔄 **Phase 3 In Progress**: Feed Display with Polaroid-style cards
+  - ✅ Polaroid-style post cards (scrapbook aesthetic)
+  - ✅ Post detail view
+  - ✅ Tab bar navigation
+  - 🔄 Connect to Core Data repositories
+- 📋 **Phase 5 Planned**: Profile with Instagram-style grid
+  - Grid layout for visual browsing (3 columns)
+  - Differentiated from Feed's vertical Polaroid list
+  - Same post detail view for full content
 - 📋 **MVP Target**: 5 months (~20 weeks)
 
 ---
@@ -410,14 +418,17 @@ A: Delete app from simulator and reinstall to reset database.
 ## 🎉 Next Steps
 
 1. Review `FEATURES.md` for Phase 3 tasks (Feed Display)
-2. Begin building main feed view with post list
-3. Implement lazy loading and pull-to-refresh
-4. Create post detail view
+2. ✅ Polaroid-style feed cards implemented
+3. 🔄 Connect feed to Core Data repositories
+4. Begin Phase 4 (Post Creation)
+5. Plan Phase 5 (Profile with Instagram-style grid)
+
+**Design Philosophy**: Feed = Polaroid scrapbook (reading), Profile = Instagram grid (browsing)
 
 **Let's build something amazing! 🚀**
 
 ---
 
-**Project Status**: Phase 2 Complete ✅  
-**Next Milestone**: Feed Display (Phase 3) 🔄  
-**Last Updated**: January 9, 2026
+**Project Status**: Phase 3 In Progress 🔄  
+**Next Milestone**: Complete Feed Data Connection, then Post Creation (Phase 4)  
+**Last Updated**: January 27, 2026

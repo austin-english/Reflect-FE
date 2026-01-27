@@ -743,15 +743,34 @@ App/
 
 #### Feed View
 - [x] **Main Feed Screen**
-  - Chronological post display with PostRowView
+  - Chronological post display with Polaroid-style cards
   - Pull-to-refresh
   - Loading state
-  - ~~PostCard component integration~~ (using simpler PostRowView for now)
+  - Modern scrapbook aesthetic
   - ~~Infinite scroll / pagination~~ (deferred to future phase)
+- [x] **Polaroid-Style Post Cards** ✨ NEW
+  - Authentic Polaroid design with white borders
+  - Photo section (320px height) with top/side white borders
+  - Bottom "writing section" (Polaroid-style white space)
+    - Caption in rounded font (handwritten feel)
+    - Metadata row: date, location, mood rating
+    - Tags row: activity tags + people tags
+    - Persona badge (subtle indicator)
+  - Photo carousel for multiple images (TabView with page dots)
+  - Gradient placeholder for text-only posts
+  - Shadow and corner radius for physical card appearance
+  - Horizontal padding for staggered/stacked effect
 - [x] **Empty State**
-  - Welcome message for new users
-  - CTA to create first post
-  - Helpful tips
+  - Scrapbook-themed empty state design
+  - Paper background with shadow
+  - Photo album icon
+  - "Your Story Starts Here" messaging
+  - Instruction to tap + button
+- [x] **Post Detail View**
+  - Full-screen post detail
+  - Reuses ScrapbookPostCard design
+  - Navigation from feed
+  - Inline navigation bar
 - [ ] **Connect to Real Data**
   - Replace preview/mock data with actual Core Data repositories
   - Wire up dependency injection
@@ -762,19 +781,24 @@ App/
   - Create tab (placeholder)
   - Profile tab (placeholder)
   - Clean, minimal design
-- [ ] **Detail View**
-  - Full-screen post view
-  - Media gallery
-  - All post metadata
-  - Edit/delete options
+- [x] **Post Navigation**
+  - NavigationLink to PostDetailView
+  - Pass Post objects via NavigationPath
+  - .buttonStyle(.plain) to prevent blue tint
 
 ### Technical Implementation
 - [x] FeedView with ScrollView
 - [x] FeedViewModel with Observable
 - [x] AppCoordinator with tab navigation
-- [x] PostRowView (private component in FeedView)
+- [x] **ScrapbookPostCard** (private component)
+  - Polaroid-inspired design
+  - White borders (top: 12pt, sides: implicit, bottom: 100pt)
+  - Photo section with TabView
+  - Bottom metadata section with all post details
+  - Mood color coding
+  - Compact tag display (limited to 5 visible)
+- [x] PostDetailView with ScrapbookPostCard
 - [x] Mock data for previews
-- [ ] PostDetailView
 - [ ] Connect to real PostRepository and PersonaRepository
 - [ ] Handle loading states
 - [ ] Error handling UI
@@ -786,21 +810,34 @@ Presentation/
 │   └── AppCoordinator.swift         # Tab bar navigation
 ├── Screens/
 │   └── Feed/
-│       ├── FeedView.swift            # Main feed UI with PostRowView
+│       ├── FeedView.swift            # Main feed UI with ScrapbookPostCard
 │       └── FeedViewModel.swift       # Feed business logic
 ```
+
+### Design System Notes
+**Polaroid-Style Card Design:**
+- Authentic Polaroid dimensions and layout
+- White borders create physical photo aesthetic
+- Bottom white section mimics the writing area on real Polaroids
+- Rounded fonts for handwritten caption feel
+- Compact metadata display (date, location, mood, tags)
+- Color-coded mood indicators
+- Subtle persona badge
+- Shadow for depth and physical card appearance
 
 ### Components to Extract Later (Phase 4+)
 **Note**: These components are currently embedded in FeedView but should be extracted to `Presentation/Common/` when they're needed by other screens:
 
-- [ ] **PostRowView** → `Presentation/Common/PostRowView.swift`
+- [ ] **ScrapbookPostCard** → `Presentation/Common/ScrapbookPostCard.swift`
   - Currently private to FeedView
-  - Extract when needed by search, profile, or other list views
+  - Extract when needed by profile grid, search results, or memories
+  - Already fully implemented with Polaroid design
   
 - [ ] **EmptyStateView** → `Presentation/Common/EmptyStateView.swift`
-  - Currently `emptyStateView` computed property
+  - Currently `emptyStateContent` computed property
   - Make generic with customizable icon, title, message
   - Reuse for empty search results, empty profile, etc.
+  - Already has scrapbook aesthetic
   
 - [ ] **LoadingView** → `Presentation/Common/LoadingView.swift`
   - Currently `loadingView` computed property
@@ -832,11 +869,102 @@ Presentation/
 ### Next Steps
 1. ✅ Create AppCoordinator with tab navigation
 2. ✅ Create FeedViewModel with mock repositories
-3. ✅ Create FeedView with PostRowView
-4. 🔄 Connect FeedView to real Core Data repositories
-5. Create PostDetailView for tapping on posts
+3. ✅ Create FeedView with ScrapbookPostCard (Polaroid design)
+4. ✅ Create PostDetailView with full post display
+5. 🔄 Connect FeedView to real Core Data repositories
 6. Test complete navigation flow
 7. Update reflectApp.swift to use AppCoordinator
+
+### Design Evolution Notes
+**From Simple List to Polaroid Scrapbook:**
+1. **Initial approach**: Simple PostRowView with horizontal layout
+2. **Redesign**: Polaroid-style cards with authentic photo aesthetic
+3. **Key improvements**:
+   - White borders create physical photo feel
+   - Bottom "writing section" with caption and metadata
+   - Rounded fonts for handwritten aesthetic
+   - Compact tag display (max 5 visible)
+   - Shadow and corner radius for depth
+   - Photo carousel for multiple images
+   - Gradient placeholders for text-only posts
+4. **User benefit**: Familiar, nostalgic design that makes journaling feel tangible and personal
+
+### Feed vs Profile UI Differentiation 🎨
+
+**Design Philosophy**: Instagram-inspired approach with distinct layouts for different contexts.
+
+#### Feed View (Current - Phase 3)
+- **Layout**: Vertical scrolling list with full-width Polaroid cards
+- **Purpose**: Chronological storytelling and detailed reading experience
+- **Visual Style**: Scrapbook/photo album aesthetic
+- **Post Display**:
+  - Large Polaroid-style cards (full width with horizontal padding)
+  - Complete caption visible
+  - All metadata shown (date, location, mood, tags, persona)
+  - Photo carousel for multiple images
+  - Emphasis on content and narrative
+- **User Behavior**: Reading, reflecting, engaging with full posts
+- **Inspiration**: Photo album, diary, timeline feed
+
+#### Profile View (Future - Phase 5)
+- **Layout**: Grid of compact square/rectangular thumbnails (3 columns)
+- **Purpose**: Quick visual overview and browsing of post history
+- **Visual Style**: Instagram profile grid aesthetic
+- **Post Display**:
+  - Small square thumbnails (photo only, no text)
+  - Tap to open full post detail view
+  - Mood indicator badge (small colored dot or border)
+  - No captions or metadata visible in grid
+  - Emphasis on visual browsing
+- **User Behavior**: Quickly scanning post history, finding specific posts by visual memory
+- **Inspiration**: Instagram profile grid, photo gallery
+
+#### Why This Differentiation?
+
+**Feed View (Polaroid cards):**
+- ✅ Encourages meaningful reflection
+- ✅ Showcases full post content and context
+- ✅ Creates emotional connection with nostalgic design
+- ✅ Better for chronological reading ("what did I do this week?")
+
+**Profile View (Grid layout):**
+- ✅ Provides at-a-glance overview of posting history
+- ✅ Efficient use of space (see 30+ posts without scrolling)
+- ✅ Familiar pattern from Instagram/social media
+- ✅ Better for visual memory ("I remember that beach photo...")
+- ✅ Quick access to specific posts
+
+#### Implementation Notes for Phase 5
+
+When building ProfileView, create a separate component:
+
+```swift
+// Presentation/Screens/Profile/ProfileView.swift
+struct ProfileView: View {
+    var body: some View {
+        ScrollView {
+            // Profile header (photo, name, stats)
+            ProfileHeader()
+            
+            // Post grid (3 columns)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 3), spacing: 2) {
+                ForEach(posts) { post in
+                    NavigationLink(value: post) {
+                        PostGridCell(post: post)  // Square thumbnail only
+                            .aspectRatio(1, contentMode: .fill)
+                    }
+                }
+            }
+        }
+        .navigationDestination(for: Post.self) { post in
+            // Reuse full ScrapbookPostCard from Feed!
+            PostDetailView(post: post)
+        }
+    }
+}
+```
+
+**Key Insight**: Both views navigate to the same `PostDetailView` with the full `ScrapbookPostCard` design. The difference is just the entry point — vertical Polaroid list (Feed) vs compact grid (Profile).
 
 ---
 
@@ -916,15 +1044,29 @@ Presentation/
 
 #### Profile Screen
 - [ ] **ProfileView**
-  - User name and bio
-  - Profile photo
-  - Post count and stats
+  - Instagram-style layout with grid of post thumbnails ✨
+  - Profile header:
+    - User name and bio
+    - Profile photo
+    - Post count and stats (total posts, current streak)
+  - Post grid (3 columns):
+    - Square thumbnails (photo only, no text)
+    - Small mood indicator badge (colored dot or border)
+    - Tap to open full post detail (reuses ScrapbookPostCard from Feed)
+  - Efficient visual browsing of post history
   - Edit profile button
 - [ ] **Edit Profile**
   - Name editing
   - Bio editing
   - Profile photo update
   - Save changes
+
+#### UI Differentiation from Feed
+**Profile Grid vs Feed List:**
+- Profile: 3-column grid of square thumbnails (Instagram-style)
+- Feed: Vertical list of full-width Polaroid cards (scrapbook-style)
+- Both navigate to same PostDetailView with full content
+- Profile optimized for visual browsing, Feed optimized for reading
 
 #### Persona Management
 - [ ] **Persona List**
@@ -954,12 +1096,66 @@ Presentation/
   - Terms of service
 
 ### Technical Implementation
-- [ ] ProfileView and ProfileViewModel
+- [ ] ProfileView with ScrollView
+  - Profile header component (name, bio, photo, stats)
+  - LazyVGrid with 3 columns (2pt spacing between cells)
+  - PostGridCell component (square thumbnail with mood badge)
+  - NavigationLink to PostDetailView (reuses ScrapbookPostCard)
+- [ ] ProfileViewModel and ProfileViewModel
+  - Fetch user data
+  - Fetch posts for grid
+  - Track profile stats (post count, streak)
 - [ ] EditProfileView
+  - Form with text fields
+  - Photo picker integration
+  - Save to UserRepository
 - [ ] PersonaManagementView
 - [ ] SettingsView
 - [ ] Settings persistence (UserDefaults)
-- [ ] Profile photo handling
+- [ ] Profile photo handling (FileManager)
+
+### Components to Create
+```swift
+// PostGridCell.swift - Compact square thumbnail for profile grid
+struct PostGridCell: View {
+    let post: Post
+    
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            // Photo thumbnail or gradient placeholder
+            if let firstMedia = post.mediaItems.first {
+                // Show photo thumbnail
+            } else {
+                // Gradient placeholder for text-only posts
+            }
+            
+            // Mood indicator badge (small colored circle)
+            Circle()
+                .fill(Color.moodColor(for: post.mood))
+                .frame(width: 12, height: 12)
+                .padding(4)
+        }
+        .aspectRatio(1, contentMode: .fill)
+        .clipped()
+    }
+}
+
+// ProfileHeader.swift - User info and stats
+struct ProfileHeader: View {
+    let user: User
+    let postCount: Int
+    let currentStreak: Int
+    
+    var body: some View {
+        VStack(spacing: Spacing.medium.rawValue) {
+            // Profile photo (circular)
+            // Name and bio
+            // Stats row (posts, streak)
+            // Edit button
+        }
+    }
+}
+```
 
 ### Testing
 - [ ] Profile editing tests
@@ -1741,9 +1937,9 @@ Month 5: Premium Features & Launch
 
 ---
 
-**Last Updated**: December 16, 2025  
-**Version**: 1.1  
-**Current Status**: Phase 1 Complete ✅, Phase 2 Ready 🔄
+**Last Updated**: January 27, 2026  
+**Version**: 1.2  
+**Current Status**: Phase 3 In Progress 🔄 (Polaroid Feed Complete, Profile Grid Planned)
 
 ---
 

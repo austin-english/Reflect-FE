@@ -117,7 +117,7 @@ reflect/
 │       │   └── PersonaSetupView.swift
 │       │
 │       └── Feed/                     # ✅ Phase 3
-│           ├── FeedView.swift
+│           ├── FeedView.swift        # Polaroid-style vertical list
 │           └── FeedViewModel.swift
 │
 └── Tests/
@@ -203,7 +203,7 @@ reflect/
 │   │   │   └── PersonaSetupView.swift
 │   │   │
 │   │   ├── Feed/                 # Phase 3
-│   │   │   ├── FeedView.swift
+│   │   │   ├── FeedView.swift            # Polaroid-style vertical list
 │   │   │   └── FeedViewModel.swift
 │   │   │
 │   │   ├── CreatePost/           # Phase 4
@@ -212,7 +212,7 @@ reflect/
 │   │   │   └── CameraView.swift
 │   │   │
 │   │   ├── Profile/              # Phase 5
-│   │   │   ├── ProfileView.swift
+│   │   │   ├── ProfileView.swift         # Instagram-style 3-column grid
 │   │   │   └── ProfileViewModel.swift
 │   │   │
 │   │   ├── Settings/             # Phase 5
@@ -952,6 +952,61 @@ let domainPosts = try entities.toDomain()
 ---
 
 ## 🎨 Design System Architecture
+
+### UI Design Patterns: Feed vs Profile
+
+**Instagram-Inspired Approach**: Different layouts for different user contexts.
+
+#### Feed View (Polaroid Scrapbook)
+```
+Purpose: Chronological storytelling and immersive reading
+Layout:  Vertical scrolling list
+Style:   Polaroid-style cards with white borders
+Content: Full post details (caption, metadata, tags)
+Size:    Full-width cards with horizontal padding
+
+User Experience:
+- Reading and reflecting on posts
+- Emotional connection through nostalgic design
+- Complete context and narrative
+- Best for "What did I do this week?"
+
+Implementation:
+- ScrollView with LazyVStack
+- ScrapbookPostCard component
+- NavigationLink to PostDetailView
+```
+
+#### Profile View (Instagram Grid)
+```
+Purpose: Visual overview and quick browsing
+Layout:  3-column grid
+Style:   Square thumbnails, minimal decoration
+Content: Photo only (no text, just mood badge)
+Size:    1/3 screen width per cell
+
+User Experience:
+- Quick scanning of post history
+- Visual memory ("I remember that photo...")
+- Efficient space usage (30+ posts visible)
+- Best for finding specific posts
+
+Implementation:
+- LazyVGrid with 3 columns (2pt spacing)
+- PostGridCell component
+- NavigationLink to PostDetailView (same as Feed!)
+```
+
+#### Shared Component: PostDetailView
+```
+Both Feed and Profile navigate to the same full-screen detail view:
+- Reuses ScrapbookPostCard from Feed
+- Shows complete post information
+- Consistent experience regardless of entry point
+
+Key Insight: Only the ENTRY POINT differs (list vs grid).
+The destination is the same.
+```
 
 ### Design Tokens Structure
 
@@ -2308,6 +2363,6 @@ class FeedViewModel {
 
 ---
 
-**Last Updated**: January 13, 2026  
-**Version**: 1.2  
-**Status**: Phase 2 Complete ✅, Phase 3 Ready 🔄
+**Last Updated**: January 27, 2026  
+**Version**: 1.3  
+**Status**: Phase 3 In Progress 🔄 (Feed Polaroid Design Complete, Profile Grid Planned)

@@ -33,8 +33,14 @@ extension Color {
     /// Main background color for views
     static let reflectBackground = Color(uiColor: .systemGroupedBackground)
     
-    /// Card/surface background color
-    static let reflectSurface = Color(uiColor: .secondarySystemGroupedBackground)
+    /// Aged paper base color - warm beige/cream for scrapbook background
+    static let agedPaper = Color(hex: "E8E4D9")
+    
+    /// Card/surface background color - Slightly aged Polaroid white
+    static let reflectSurface = Color(hex: "FFFEF9")
+    
+    /// Polaroid card background - Warm off-white (same as surface, explicit for clarity)
+    static let polaroidWhite = Color(hex: "FFFEF9")
     
     /// Elevated surface (for cards on cards)
     static let reflectSurfaceElevated = Color(uiColor: .tertiarySystemGroupedBackground)
@@ -255,12 +261,14 @@ enum ShadowStyle {
     case small
     case medium
     case large
+    case polaroid  // Soft, elevated shadow for Polaroid cards
     
     var radius: CGFloat {
         switch self {
         case .small: return 2
         case .medium: return 4
         case .large: return 8
+        case .polaroid: return 15
         }
     }
     
@@ -269,6 +277,16 @@ enum ShadowStyle {
         case .small: return 1
         case .medium: return 2
         case .large: return 4
+        case .polaroid: return 6
+        }
+    }
+    
+    var opacity: Double {
+        switch self {
+        case .small: return 0.1
+        case .medium: return 0.1
+        case .large: return 0.1
+        case .polaroid: return 0.1  // Gentle shadow for Polaroid cards
         }
     }
 }
@@ -276,7 +294,7 @@ enum ShadowStyle {
 extension View {
     func shadow(_ style: ShadowStyle) -> some View {
         self.shadow(
-            color: Color.black.opacity(0.1),
+            color: Color.black.opacity(style.opacity),
             radius: style.radius,
             x: 0,
             y: style.y
