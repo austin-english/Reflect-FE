@@ -52,6 +52,15 @@ final class DependencyContainer {
         )
     }
     
+    /// Create a ProfileViewModel with real repositories
+    func makeProfileViewModel() -> ProfileViewModel {
+        ProfileViewModel(
+            postRepository: postRepository,
+            userRepository: userRepository,
+            personaRepository: personaRepository
+        )
+    }
+    
     // MARK: - Initialization
     
     private init() {

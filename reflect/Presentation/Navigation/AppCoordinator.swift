@@ -130,14 +130,14 @@ struct AppCoordinatorView: View {
             }
             .tag(AppCoordinator.Tab.create)
             
-            // Profile Tab (Placeholder for Phase 5)
+            // Profile Tab
             NavigationStack {
                 #if DEBUG
                 // Use preview data during development
-                ProfileView(viewModel: FeedViewModel.preview)
+                ProfileView(viewModel: ProfileViewModel.preview)
                 #else
                 // Use real data in production
-                ProfileView(viewModel: DependencyContainer.shared.makeFeedViewModel())
+                ProfileView(viewModel: DependencyContainer.shared.makeProfileViewModel())
                 #endif
             }
             .tabItem {

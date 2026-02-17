@@ -53,89 +53,14 @@ Reflect uses **MVVM (Model-View-ViewModel) + Clean Architecture** for a maintain
 
 ## 📂 File Structure
 
-### Current Structure (Phase 3 In Progress)
-
-```
-reflect/
-├── App/
-│   ├── reflectApp.swift              # @main app entry point
-│   ├── DependencyContainer.swift     # Production DI (real Core Data) ✅ Phase 3
-│   ├── PreviewHelpers.swift          # Preview/Test DI (in-memory Core Data) ✅ Phase 3
-│   └── ContentView.swift             # Temporary component showcase
-│
-├── Design/
-│   └── DesignSystem.swift            # Design tokens & styles
-│
-├── Components/
-│   ├── MoodSlider.swift              # 1-10 mood selector
-│   ├── TagPicker.swift               # Multi-select tag picker
-│   ├── PostCard.swift                # Post display component
-│   ├── MemoriesLaneView.swift        # Memories carousel
-│   └── ReflectLogo.swift             # App logo (ripple design)
-│
-├── Domain/
-│   ├── Entities/                     # Pure Swift models ✅
-│   │   ├── Post.swift
-│   │   ├── User.swift
-│   │   ├── Persona.swift
-│   │   ├── MediaItem.swift
-│   │   └── Memory.swift
-│   │
-│   ├── UseCases/                     # Business logic
-│   │   └── CompleteOnboardingUseCase.swift  # ✅ Phase 2
-│   │
-│   └── RepositoryInterfaces/         # Protocols ✅
-│       ├── PostRepository.swift
-│       ├── UserRepository.swift
-│       ├── PersonaRepository.swift
-│       ├── MediaItemRepository.swift
-│       └── MemoryRepository.swift
-│
-├── Data/                             # ✅ Phase 1
-│   ├── Repositories/
-│   │   ├── PostRepositoryImpl.swift
-│   │   ├── UserRepositoryImpl.swift
-│   │   ├── PersonaRepositoryImpl.swift
-│   │   └── MediaItemRepositoryImpl.swift
-│   │
-│   └── CoreData/
-│       ├── ReflectDataModel.xcdatamodeld
-│       ├── CoreDataManager.swift
-│       └── Mappers.swift
-│
-├── Presentation/                     # Phases 2-3 ✅
-│   ├── Navigation/
-│   │   └── AppCoordinator.swift      # Tab navigation ✅ Phase 3
-│   │
-│   └── Screens/
-│       ├── Onboarding/               # ✅ Phase 2
-│       │   ├── OnboardingCoordinator.swift
-│       │   ├── OnboardingViewModel.swift
-│       │   ├── WelcomeView.swift
-│       │   ├── PrivacyView.swift
-│       │   ├── SignUpView.swift
-│       │   └── PersonaSetupView.swift
-│       │
-│       └── Feed/                     # ✅ Phase 3
-│           ├── FeedView.swift        # Polaroid-style vertical list
-│           └── FeedViewModel.swift
-│
-└── Tests/
-    ├── reflectTests/                 # Unit tests target
-    │   ├── Domain/
-    │   │   └── UseCases/
-    │   │       └── CompleteOnboardingUseCaseTests.swift
-    │   │
-    │   └── Data/
-    │       ├── CoreDataManagerTests.swift
-    │       ├── MappersTests.swift
-    │       └── RepositoryTests.swift
-    │
-    └── reflectUITests/               # UI tests target
-        └── OnboardingFlowUITests.swift
-```
-
-### Target Structure (All Phases)
+> **📌 Important:** This is the canonical file structure to follow. All files should be organized according to this layout.
+> 
+> **Key Principles:**
+> - ✅ **ViewModels live with their Views** in `Presentation/Screens/[ScreenName]/`
+> - ✅ **Shared UI components** go in `Presentation/Common/Components/`
+> - ✅ **Navigation logic only** in `Presentation/Navigation/`
+> - ❌ **No** root-level `Components/` folder
+> - ❌ **No** `Presentation/Common/ViewModels/` folder
 
 ```
 reflect/
@@ -212,7 +137,7 @@ reflect/
 │   │   │   └── CameraView.swift
 │   │   │
 │   │   ├── Profile/              # Phase 5
-│   │   │   ├── ProfileView.swift         # Instagram-style 3-column grid
+│   │   │   ├── ProfileView.swift         # Scrapbook-style 2-column grid
 │   │   │   └── ProfileViewModel.swift
 │   │   │
 │   │   ├── Settings/             # Phase 5
@@ -233,7 +158,7 @@ reflect/
 │   │   ├── Components/           # Shared components (Phase 0 ✅)
 │   │   │   ├── MoodSlider.swift
 │   │   │   ├── TagPicker.swift
-│   │   │   ├── PostCard.swift
+│   │   │   ├── ScrapbookPostCard.swift    # Polaroid-style post card ✅
 │   │   │   ├── MemoriesLaneView.swift
 │   │   │   └── ReflectLogo.swift
 │   │   │
@@ -242,8 +167,7 @@ reflect/
 │   │       └── Color+Extensions.swift
 │   │
 │   └── Navigation/
-│       ├── TabBarView.swift
-│       └── AppCoordinator.swift
+│       └── AppCoordinator.swift          # Tab navigation state & coordination ✅
 │
 ├── Services/                      # Phases 4-12
 │   ├── Camera/                   # Phase 4
@@ -298,6 +222,16 @@ reflect/
     └── reflectUITests/           # UI tests target
         └── OnboardingFlowUITests.swift
 ```
+
+### 🗑️ Deprecated/Legacy Files
+
+If you encounter these files in the project, they should be **removed** or **moved**:
+
+- ❌ **Root-level `Components/` folder** → Move to `Presentation/Common/Components/`
+- ❌ **`Presentation/Common/ViewModels/` folder** → ViewModels belong in `Presentation/Screens/[ScreenName]/`
+- ❌ **`Presentation/Navigation/TabBarView.swift`** → Deprecated, use `AppCoordinator.swift` instead
+- ❌ **`Presentation/Navigation/ProfileView.swift`** → Should be in `Presentation/Screens/Profile/`
+- ❌ **Any root-level View files** → Should be organized in appropriate `Presentation/Screens/` folders
 
 ---
 

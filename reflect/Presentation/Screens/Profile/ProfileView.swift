@@ -9,9 +9,9 @@ import SwiftUI
 
 /// Profile screen displaying user info and posts in grid layout
 struct ProfileView: View {
-    @State private var viewModel: FeedViewModel
+    @State private var viewModel: ProfileViewModel
     
-    init(viewModel: FeedViewModel) {
+    init(viewModel: ProfileViewModel) {
         self._viewModel = State(initialValue: viewModel)
     }
     
@@ -24,7 +24,7 @@ struct ProfileView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     // Profile header
-                    ProfileHeaderView()
+                    ProfileHeaderView(viewModel: viewModel)
                         .padding(.horizontal, Spacing.medium.rawValue)
                         .padding(.bottom, Spacing.large.rawValue)
                     
@@ -32,7 +32,7 @@ struct ProfileView: View {
                     if viewModel.isLoading {
                         loadingView
                             .padding(.top, Spacing.huge.rawValue)
-                    } else if viewModel.posts.isEmpty {
+                    } else if viewModel.filteredPosts.isEmpty {
                         emptyStateView
                     } else {
                         postsGridView
@@ -41,7 +41,7 @@ struct ProfileView: View {
                 .padding(.vertical, Spacing.medium.rawValue)
             }
             .refreshable {
-                if !viewModel.posts.isEmpty || !viewModel.isLoading {
+                if !viewModel.filteredPosts.isEmpty || !viewModel.isLoading {
                     await viewModel.refresh()
                 }
             }
@@ -50,6 +50,15 @@ struct ProfileView: View {
         .navigationBarTitleDisplayMode(.large)
         .task {
             await viewModel.loadInitialData()
+        }
+        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+            Button("OK") {
+                viewModel.clearError()
+            }
+        } message: {
+            if let errorMessage = viewModel.errorMessage {
+                Text(errorMessage)
+            }
         }
     }
     
@@ -89,20 +98,20 @@ struct ProfileView: View {
     private var postsGridView: some View {
         LazyVGrid(
             columns: [
-                GridItem(.flexible(), spacing: 2),
-                GridItem(.flexible(), spacing: 2),
-                GridItem(.flexible(), spacing: 2)
+                GridItem(.flexible(), spacing: Spacing.small.rawValue),
+                GridItem(.flexible(), spacing: Spacing.small.rawValue)
             ],
-            spacing: 2
+            spacing: Spacing.medium.rawValue
         ) {
-            ForEach(viewModel.posts) { post in
+            ForEach(viewModel.filteredPosts) { post in
                 NavigationLink(value: post) {
-                    PostGridCell(post: post)
+                    ScrapbookPostCard(post: post)
+                        .frame(height: 400) // Fixed height for grid consistency
                 }
-                .buttonStyle(.plain) // Prevents blue tint on tap
+                .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 2)
+        .padding(.horizontal, Spacing.medium.rawValue)
         .navigationDestination(for: Post.self) { post in
             PostDetailView(post: post)
         }
@@ -113,6 +122,8 @@ struct ProfileView: View {
 
 /// Social media-style profile header
 private struct ProfileHeaderView: View {
+    let viewModel: ProfileViewModel
+    
     var body: some View {
         VStack(spacing: Spacing.medium.rawValue) {
             // Profile photo and info
@@ -136,11 +147,11 @@ private struct ProfileHeaderView: View {
                 
                 // Name and bio
                 VStack(alignment: .leading, spacing: Spacing.xsmall.rawValue) {
-                    Text("Preview User") // TODO: Get from user data
+                    Text(viewModel.displayName)
                         .font(.headlineLarge)
                         .foregroundStyle(Color.reflectTextPrimary)
                     
-                    Text("Capturing life, one moment at a time ✨")
+                    Text(viewModel.bio)
                         .font(.bodySmall)
                         .foregroundStyle(Color.reflectTextSecondary)
                         .lineLimit(2)
@@ -151,17 +162,17 @@ private struct ProfileHeaderView: View {
             
             // Stats row (Instagram-style)
             HStack(spacing: 0) {
-                statItem(value: "127", label: "Posts")
+                statItem(value: "\(viewModel.postCount)", label: "Posts")
                 
                 Divider()
                     .frame(height: 30)
                 
-                statItem(value: "12", label: "Streak")
+                statItem(value: "\(viewModel.currentStreak)", label: "Streak")
                 
                 Divider()
                     .frame(height: 30)
                 
-                statItem(value: "3", label: "Personas")
+                statItem(value: "\(viewModel.personaCount)", label: "Personas")
             }
             .padding(.vertical, Spacing.small.rawValue)
             .padding(.horizontal, Spacing.medium.rawValue)
@@ -169,7 +180,9 @@ private struct ProfileHeaderView: View {
             .cornerRadius(12)
             
             // Active persona selector
-            personaSelector
+            if !viewModel.personas.isEmpty {
+                personaSelector
+            }
         }
     }
     
@@ -190,12 +203,26 @@ private struct ProfileHeaderView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.small.rawValue) {
                 // "All" option
-                personaChip(name: "All Posts", color: Color.gray, isSelected: true)
+                personaChip(
+                    name: "All Posts",
+                    color: Color.gray,
+                    isSelected: viewModel.selectedPersonaId == nil
+                )
+                .onTapGesture {
+                    viewModel.selectPersona(nil)
+                }
                 
-                // Mock personas - TODO: Get from viewModel
-                personaChip(name: "Personal", color: Color.reflectPrimary, isSelected: false)
-                personaChip(name: "Work", color: Color.purple, isSelected: false)
-                personaChip(name: "Creative", color: Color.pink, isSelected: false)
+                // User's personas
+                ForEach(viewModel.personas) { persona in
+                    personaChip(
+                        name: persona.name,
+                        color: Color.personaColor(persona.color),
+                        isSelected: viewModel.selectedPersonaId == persona.id
+                    )
+                    .onTapGesture {
+                        viewModel.selectPersona(persona.id)
+                    }
+                }
             }
         }
     }
@@ -274,18 +301,6 @@ private struct PostGridCell: View {
                 .strokeBorder(Color.reflectTextTertiary.opacity(0.1), lineWidth: 0.5)
         )
     }
-    
-    private func moodEmoji(for mood: Int) -> String {
-        switch mood {
-        case 1...2: return "😢"
-        case 3...4: return "😕"
-        case 5...6: return "😐"
-        case 7...8: return "🙂"
-        case 9: return "😊"
-        case 10: return "🤩"
-        default: return "😐"
-        }
-    }
 }
 
 // MARK: - Post Detail View
@@ -316,12 +331,12 @@ private struct PostDetailView: View {
 
 #Preview("Profile with Posts") {
     NavigationStack {
-        ProfileView(viewModel: FeedViewModel.preview)
+        ProfileView(viewModel: ProfileViewModel.preview)
     }
 }
 
 #Preview("Profile Empty") {
     NavigationStack {
-        ProfileView(viewModel: FeedViewModel.emptyPreview)
+        ProfileView(viewModel: ProfileViewModel.emptyPreview)
     }
 }

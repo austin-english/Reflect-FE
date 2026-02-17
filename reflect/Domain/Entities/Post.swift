@@ -232,5 +232,16 @@ extension Post {
         mediaItems: [MediaItem.mockPhoto],
         activityTags: ["throwback"]
     )
+    
+    /// Array of all mock posts for previews
+    static let mockPosts: [Post] = [
+        mockPhoto,
+        mockMultiplePhotos,
+        mockText,
+        mockGratitude,
+        mockDream,
+        mockRant,
+        mockOldPost
+    ]
 }
 #endif
