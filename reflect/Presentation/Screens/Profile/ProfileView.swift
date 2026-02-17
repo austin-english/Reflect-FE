@@ -98,20 +98,20 @@ struct ProfileView: View {
     private var postsGridView: some View {
         LazyVGrid(
             columns: [
-                GridItem(.flexible(), spacing: Spacing.small.rawValue),
-                GridItem(.flexible(), spacing: Spacing.small.rawValue)
+                GridItem(.flexible(), spacing: 2),
+                GridItem(.flexible(), spacing: 2),
+                GridItem(.flexible(), spacing: 2)
             ],
-            spacing: Spacing.medium.rawValue
+            spacing: 2
         ) {
             ForEach(viewModel.filteredPosts) { post in
                 NavigationLink(value: post) {
-                    ScrapbookPostCard(post: post)
-                        .frame(height: 400) // Fixed height for grid consistency
+                    PostGridCell(post: post)
+                        .aspectRatio(4/5, contentMode: .fill)
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, Spacing.medium.rawValue)
         .navigationDestination(for: Post.self) { post in
             PostDetailView(post: post)
         }
@@ -154,7 +154,7 @@ private struct ProfileHeaderView: View {
                     Text(viewModel.bio)
                         .font(.bodySmall)
                         .foregroundStyle(Color.reflectTextSecondary)
-                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 
                 Spacer()
@@ -176,7 +176,7 @@ private struct ProfileHeaderView: View {
             }
             .padding(.vertical, Spacing.small.rawValue)
             .padding(.horizontal, Spacing.medium.rawValue)
-            .background(Color.reflectSurface)
+            .background(.regularMaterial)
             .cornerRadius(12)
             
             // Active persona selector
@@ -190,11 +190,11 @@ private struct ProfileHeaderView: View {
         VStack(spacing: 4) {
             Text(value)
                 .font(.headlineLarge)
-                .foregroundStyle(Color.reflectTextPrimary)
+                .foregroundStyle(Color.primary)
             
             Text(label)
                 .font(.captionLarge)
-                .foregroundStyle(Color.reflectTextSecondary)
+                .foregroundStyle(Color.secondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -224,25 +224,28 @@ private struct ProfileHeaderView: View {
                     }
                 }
             }
+            .padding(.horizontal, Spacing.medium.rawValue)
         }
+        // Break out of the parent's horizontal padding so it spans full width
+        .padding(.horizontal, -Spacing.medium.rawValue)
     }
     
     private func personaChip(name: String, color: Color, isSelected: Bool) -> some View {
         HStack(spacing: 6) {
             Circle()
                 .fill(color)
-                .frame(width: 12, height: 12)
+                .frame(width: 8, height: 8)
             
             Text(name)
                 .font(.labelMedium)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(isSelected ? color.opacity(0.2) : Color.reflectSurface)
-        .foregroundStyle(isSelected ? color : Color.reflectTextSecondary)
+        .background(isSelected ? color.opacity(0.15) : Color(.secondarySystemBackground))
+        .foregroundStyle(isSelected ? color : Color.secondary)
         .overlay(
             RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(isSelected ? color : Color.clear, lineWidth: 1.5)
+                .strokeBorder(isSelected ? color : Color(.separator), lineWidth: 1)
         )
         .cornerRadius(20)
     }
@@ -255,51 +258,27 @@ private struct PostGridCell: View {
     let post: Post
     
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            // Background with mood color
+        ZStack(alignment: .bottomTrailing) {
+            // Mood color gradient — matches feed card placeholder style
             Rectangle()
-                .fill(Color.moodColor(for: post.mood).opacity(0.2))
-                .aspectRatio(1, contentMode: .fill)
-            
-            // Content overlay
-            VStack(alignment: .leading, spacing: 4) {
-                Spacer()
-                
-                // Caption preview (truncated)
-                Text(post.caption)
-                    .font(.captionSmall)
-                    .foregroundStyle(Color.reflectTextPrimary)
-                    .lineLimit(2)
-                    .padding(8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        LinearGradient(
-                            colors: [
-                                Color.black.opacity(0),
-                                Color.black.opacity(0.4)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.moodColor(for: post.mood).opacity(0.5),
+                            Color.moodColor(for: post.mood).opacity(0.15)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
-            }
+                )
             
-            // Mood indicator badge
-            Text("\(post.mood)/10")
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(.white)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.moodColor(for: post.mood))
-                .cornerRadius(8)
+            // Small mood dot in bottom-right corner — subtle, no text
+            Circle()
+                .fill(Color.moodColor(for: post.mood))
+                .frame(width: 8, height: 8)
                 .padding(6)
         }
-        .cornerRadius(8)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(Color.reflectTextTertiary.opacity(0.1), lineWidth: 0.5)
-        )
+        .clipped()
     }
 }
 
