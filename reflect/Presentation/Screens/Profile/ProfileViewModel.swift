@@ -30,6 +30,8 @@ final class ProfileViewModel {
     var isLoading = false
     var errorMessage: String?
     
+    private var isInitialLoadComplete = false
+    
     // MARK: - Computed Properties
     
     var selectedPersona: Persona? {
@@ -46,7 +48,10 @@ final class ProfileViewModel {
     }
     
     var postCount: Int {
-        user?.totalPosts ?? posts.count
+        if let user, user.totalPosts > 0 {
+            return user.totalPosts
+        }
+        return posts.count
     }
     
     var currentStreak: Int {
@@ -74,7 +79,8 @@ final class ProfileViewModel {
     /// Load initial profile data
     @MainActor
     func loadInitialData() async {
-        guard !isLoading else { return }
+        guard !isInitialLoadComplete && !isLoading else { return }
+        isInitialLoadComplete = true
         
         isLoading = true
         errorMessage = nil
@@ -104,6 +110,7 @@ final class ProfileViewModel {
     /// Refresh profile data
     @MainActor
     func refresh() async {
+        errorMessage = nil
         do {
             // Reload user
             user = try await userRepository.fetchCurrentUser()
